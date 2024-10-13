@@ -19,10 +19,10 @@ const (
 )
 
 type Position struct {
-	X, Y int
+	X, Y float64
 }
 
-func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y int, rotation float64) {
+func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64) {
 	for i, image := range source {
 		op := &ebiten.DrawImageOptions{}
 
@@ -33,7 +33,7 @@ func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y int, r
 		// moving back
 		op.GeoM.Translate(half_size, half_size)
 
-		op.GeoM.Translate(float64(x), float64(y-i))
+		op.GeoM.Translate(x, y-float64(i))
 		screen.DrawImage(image, op)
 	}
 }
@@ -59,7 +59,7 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
-	g.tank.rotation += .01
+	g.tank.Update()
 	return nil
 }
 
