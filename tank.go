@@ -6,7 +6,7 @@ import (
 
 type Tank struct {
 	Position
-	sprites []*ebiten.Image
+	sprites  []*ebiten.Image
 	rotation float64
 }
 

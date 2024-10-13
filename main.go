@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	RENDER_WIDTH = 320
+	RENDER_WIDTH  = 320
 	RENDER_HEIGHT = 240
 
-	SCREEN_WIDTH = 640
+	SCREEN_WIDTH  = 640
 	SCREEN_HEIGHT = 480
 
 	SPRITE_SIZE = 16
@@ -38,7 +38,7 @@ func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y int, r
 	}
 }
 
-func SplitSprites(source *ebiten.Image) []*ebiten.Image{
+func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 	count := source.Bounds().Dy() / SPRITE_SIZE
 	sprites := []*ebiten.Image{}
 
@@ -81,8 +81,8 @@ func main() {
 	}
 
 	tank := Tank{
-		Position: Position{ 200, 200 },
-		sprites: SplitSprites(img),
+		Position: Position{200, 200},
+		sprites:  SplitSprites(img),
 	}
 
 	game := &Game{
