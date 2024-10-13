@@ -11,17 +11,21 @@ const (
 	ROTATION_SPEED = .04
 )
 
-type Tank struct {
-	Position
+type Turret struct {
 	sprites  []*ebiten.Image
 	rotation float64
 }
 
+type Tank struct {
+	Position
+	sprites  []*ebiten.Image
+	rotation float64
+	turret Turret
+}
+
 func (t *Tank) Draw(screen *ebiten.Image) {
-	// we offset by 90 deg, because we are 'facing' to the right
-	// as default degrees 0 is facing right, but drawn facing upward
-	rotation := t.rotation + 90*math.Pi/180
-	DrawStackedSprite(t.sprites, screen, t.X, t.Y, rotation)
+	DrawStackedSprite(t.sprites, screen, t.X, t.Y, t.rotation)
+	DrawStackedSprite(t.turret.sprites, screen, t.X, t.Y, t.turret.rotation)
 }
 
 func (t *Tank) Update() {
@@ -48,4 +52,7 @@ func (t *Tank) Update() {
 	if ebiten.IsKeyPressed(ebiten.KeyD) {
 		t.rotation += ROTATION_SPEED
 	}
+
+	x, y := ebiten.CursorPosition()
+	t.turret.rotation = -math.Atan2(t.X - float64(x), t.Y - float64(y))
 }

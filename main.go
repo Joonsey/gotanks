@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"image"
 	"log"
 
@@ -29,7 +30,7 @@ func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotat
 		half_size := float64(SPRITE_SIZE / 2)
 		// moving by half-size to rotate around the center
 		op.GeoM.Translate(-half_size, -half_size)
-		op.GeoM.Rotate(rotation)
+		op.GeoM.Rotate(rotation - 90*math.Pi/180)
 		// moving back
 		op.GeoM.Translate(half_size, half_size)
 
@@ -80,9 +81,17 @@ func main() {
 		log.Fatal(err)
 	}
 
+	turret_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/tank-barrel.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	tank := Tank{
 		Position: Position{200, 200},
 		sprites:  SplitSprites(img),
+		turret: Turret{
+			sprites: SplitSprites(turret_img),
+		},
 	}
 
 	game := &Game{
