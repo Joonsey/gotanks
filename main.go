@@ -43,7 +43,7 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 	count := source.Bounds().Dy() / SPRITE_SIZE
 	sprites := []*ebiten.Image{}
 
-	for i := 0; i < count; i++ {
+	for i := count - 1; i > 0; i-- {
 		rect := image.Rectangle{}
 		rect.Min.X = 0
 		rect.Max.X = 16
