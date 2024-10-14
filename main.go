@@ -57,15 +57,21 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 
 type Game struct {
 	tank Tank
+
+	rock_sprites []*ebiten.Image
+	rotation float64
 }
 
 func (g *Game) Update() error {
 	g.tank.Update()
+	g.rotation += 0.01
+	g.tank.rotation += 0.01
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.tank.Draw(screen)
+	DrawStackedSprite(g.rock_sprites, screen, 150, 150, g.rotation)
 }
 
 func (g *Game) Layout(screenWidth, screenHeight int) (renderWidth, renderHeight int) {
@@ -101,6 +107,7 @@ func main() {
 
 	game := &Game{
 		tank: tank,
+		rock_sprites: SplitSprites(rock_img),
 	}
 
 	if err := ebiten.RunGame(game); err != nil {
