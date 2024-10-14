@@ -76,12 +76,17 @@ func main() {
 	ebiten.SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
 	ebiten.SetWindowTitle("gotanks")
 
-	img, _, err := ebitenutil.NewImageFromFile("assets/sprites/tank.png")
+	img, _, err := ebitenutil.NewImageFromFile("assets/sprites/stacks/tank.png")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	turret_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/tank-barrel.png")
+	turret_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/stacks/tank-barrel.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rock_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/stacks/big-dark-rock.png")
 	if err != nil {
 		log.Fatal(err)
 	}
