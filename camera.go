@@ -3,7 +3,8 @@ package main
 import "github.com/hajimehoshi/ebiten/v2"
 
 type Camera struct {
-	Offset Position
+	Offset   Position
+	//rotation float64 TODO
 }
 
 func (c *Camera) Update(target_pos Position) {

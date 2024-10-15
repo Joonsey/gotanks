@@ -39,8 +39,17 @@ func (l *Level) Draw(screen *ebiten.Image, camera Camera) {
 				}
 				x := float64(i % l.tiled_map.Width)
 				y := float64(i / l.tiled_map.Width)
+
+				// TODO implement potential rotation (?)
+				// this implementation is naive, need something more dynamic
+				//render_x := (x - y) * (SPRITE_SIZE / 2)
+				//render_y := (x + y) * (SPRITE_SIZE / 2)
+				//DrawStackedSprite(sprite, screen, render_x-camera.Offset.X, render_y-camera.Offset.Y, 45*math.Pi / 180)
+
 				sprite := l.am.stacked_map[tile.GetTileRect()]
-				DrawStackedSprite(sprite, screen, x*SPRITE_SIZE-camera.Offset.X, y*SPRITE_SIZE-camera.Offset.Y, 0)
+				render_x := x * SPRITE_SIZE
+				render_y := y * SPRITE_SIZE
+				DrawStackedSprite(sprite, screen, render_x-camera.Offset.X, render_y-camera.Offset.Y, 0)
 			}
 		}
 	}
