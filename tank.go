@@ -20,7 +20,7 @@ type Tank struct {
 	Position
 	sprites  []*ebiten.Image
 	rotation float64
-	turret Turret
+	turret   Turret
 }
 
 func (t *Tank) Draw(screen *ebiten.Image) {
@@ -54,5 +54,5 @@ func (t *Tank) Update() {
 	}
 
 	x, y := ebiten.CursorPosition()
-	t.turret.rotation = -math.Atan2(t.X - float64(x), t.Y - float64(y))
+	t.turret.rotation = -math.Atan2(t.X-float64(x), t.Y-float64(y))
 }

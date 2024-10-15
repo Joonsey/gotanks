@@ -1,9 +1,9 @@
 package main
 
 import (
-	"math"
 	"image"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -56,10 +56,12 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 }
 
 type Game struct {
-	tank Tank
+	tank  Tank
+	level Level
+	am    *AssetManager
 
 	rock_sprites []*ebiten.Image
-	rotation float64
+	rotation     float64
 }
 
 func (g *Game) Update() error {
@@ -70,6 +72,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	g.level.Draw(screen)
 	g.tank.Draw(screen)
 	DrawStackedSprite(g.rock_sprites, screen, 150, 150, g.rotation)
 }
@@ -106,9 +109,13 @@ func main() {
 	}
 
 	game := &Game{
-		tank: tank,
+		tank:         tank,
 		rock_sprites: SplitSprites(rock_img),
 	}
+
+	game.am = &AssetManager{}
+	game.am.Init("temp.json")
+	game.level = loadLevel("assets/tiled/level_1.tmx", game.am)
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
