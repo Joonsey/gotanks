@@ -29,7 +29,7 @@ func (t *Tank) Draw(screen *ebiten.Image, camera Camera) {
 	DrawStackedSprite(t.turret.sprites, screen, x, y-3, t.turret.rotation)
 }
 
-func (t *Tank) Update() {
+func (t *Tank) Update(g *Game) {
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
 		x := math.Cos(t.rotation)
 		y := math.Sin(t.rotation)
@@ -55,5 +55,5 @@ func (t *Tank) Update() {
 	}
 
 	x, y := ebiten.CursorPosition()
-	t.turret.rotation = -math.Atan2(t.X-float64(x), t.Y-float64(y))
+	t.turret.rotation = -math.Atan2(t.X-g.camera.Offset.X-float64(x), t.Y-g.camera.Offset.Y-float64(y))
 }
