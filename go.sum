@@ -25,6 +25,8 @@ github.com/jfreymuth/oggvorbis v1.0.1/go.mod h1:NqS+K+UXKje0FUYUPosyQ+XTVvjmVjps
 github.com/jfreymuth/vorbis v1.0.0/go.mod h1:8zy3lUAm9K/rJJk223RKy6vjCZTWC61NA2QD06bfOE0=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/lafriks/go-tiled v0.13.0 h1:xZE2rEKCNJPya+g92FCIjzEH4fZLQcZVqvpw174P2MY=
+github.com/lafriks/go-tiled v0.13.0/go.mod h1:FRhv/27R9S9IOmDl7+XrSUjFrV0uCUCu23rTCHRuj5c=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
