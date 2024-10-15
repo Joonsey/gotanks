@@ -23,9 +23,10 @@ type Tank struct {
 	turret   Turret
 }
 
-func (t *Tank) Draw(screen *ebiten.Image) {
-	DrawStackedSprite(t.sprites, screen, t.X, t.Y, t.rotation)
-	DrawStackedSprite(t.turret.sprites, screen, t.X, t.Y-3, t.turret.rotation)
+func (t *Tank) Draw(screen *ebiten.Image, camera Camera) {
+	x, y := t.X - camera.Offset.X, t.Y - camera.Offset.Y
+	DrawStackedSprite(t.sprites, screen, x, y, t.rotation)
+	DrawStackedSprite(t.turret.sprites, screen, x, y-3, t.turret.rotation)
 }
 
 func (t *Tank) Update() {

@@ -28,7 +28,7 @@ func loadLevel(map_path string, am *AssetManager) Level {
 	return level
 }
 
-func (l *Level) Draw(screen *ebiten.Image) {
+func (l *Level) Draw(screen *ebiten.Image, camera Camera) {
 	for _, layer := range l.tiled_map.Layers {
 		// we figure out how to treat the objects from the name of the layer
 		switch layer.Name {
@@ -40,7 +40,7 @@ func (l *Level) Draw(screen *ebiten.Image) {
 				x := float64(i % l.tiled_map.Width)
 				y := float64(i / l.tiled_map.Width)
 				sprite := l.am.stacked_map[tile.GetTileRect()]
-				DrawStackedSprite(sprite, screen, x*SPRITE_SIZE, y*SPRITE_SIZE, 0)
+				DrawStackedSprite(sprite, screen, x*SPRITE_SIZE - camera.Offset.X, y*SPRITE_SIZE - camera.Offset.Y, 0)
 			}
 		}
 	}

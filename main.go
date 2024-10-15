@@ -56,24 +56,38 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 }
 
 type Game struct {
-	tank  Tank
-	level Level
-	am    *AssetManager
+	tank   Tank
+	level  Level
+	am     *AssetManager
+	camera Camera
 
 	rock_sprites []*ebiten.Image
 	rotation     float64
 }
 
+func (g *Game) GetTargetCameraPosition() Position {
+	targetX := g.tank.X - RENDER_WIDTH/2
+	targetX = max(0, targetX)
+	targetX = min(float64(g.level.tiled_map.Width * SPRITE_SIZE), targetX)
+
+	targetY := g.tank.Y - RENDER_HEIGHT/2
+	targetY = max(0, targetY)
+	targetY = min(float64(g.level.tiled_map.Height * SPRITE_SIZE), targetY)
+
+	return Position{targetX, targetY}
+}
+
 func (g *Game) Update() error {
 	g.tank.Update()
 	g.rotation += 0.01
-	g.tank.rotation += 0.01
+	g.camera.Update(g.GetTargetCameraPosition())
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.level.Draw(screen)
-	g.tank.Draw(screen)
+	g.level.Draw(screen, g.camera)
+	g.tank.Draw(screen, g.camera)
+
 	DrawStackedSprite(g.rock_sprites, screen, 150, 150, g.rotation)
 }
 
