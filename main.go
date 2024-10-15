@@ -65,11 +65,11 @@ type Game struct {
 func (g *Game) GetTargetCameraPosition() Position {
 	targetX := g.tank.X - RENDER_WIDTH/2
 	targetX = max(0, targetX)
-	targetX = min(float64(g.level.tiled_map.Width*SPRITE_SIZE - RENDER_WIDTH), targetX)
+	targetX = min(float64(g.level.tiled_map.Width*SPRITE_SIZE-RENDER_WIDTH), targetX)
 
 	targetY := g.tank.Y - RENDER_HEIGHT/2
 	targetY = max(0, targetY)
-	targetY = min(float64(g.level.tiled_map.Height*SPRITE_SIZE - RENDER_HEIGHT), targetY)
+	targetY = min(float64(g.level.tiled_map.Height*SPRITE_SIZE-RENDER_HEIGHT), targetY)
 
 	// TODO should perhaps offset by relative mouse position to give the illusion of 'zoom' or 'focus'
 
@@ -77,7 +77,7 @@ func (g *Game) GetTargetCameraPosition() Position {
 }
 
 func (g *Game) Update() error {
-	g.tank.Update()
+	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
 	return nil
 }
