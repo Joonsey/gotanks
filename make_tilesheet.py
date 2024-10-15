@@ -1,5 +1,7 @@
+import enum
 from PIL import Image
 import os
+import json
 
 TILE_SIZE = 16
 
@@ -92,10 +94,35 @@ def save_image(image: Image.Image, path: str) -> None:
     image.save(path, 'PNG')
 
 
+def save_map(stacked_paths: list[str], path: str, sheet_width: int) -> None:
+    """
+    Saves a paths to a file.
+
+    This method is entirely naive
+
+    Args:
+    - staked_paths: List of paths in the same order they are drawn
+    - path: Path to write to
+    - sheet_width: Width of the sheet
+    """
+
+    _map = {}
+    for i, image_path in enumerate(stacked_paths):
+        x = i % sheet_width
+        y = i // sheet_width
+
+        _map["%s, %s" % (x, y)] = image_path
+
+    data = json.dumps(_map)
+    with open(path, 'w+') as f:
+        f.write(data)
+
+
 # Example usage
 if __name__ == '__main__':
     STACK_PATH = 'assets/sprites/stacks/'
     OUTPUT_PATH = 'assets/tiled/stacked_tilemap.png'
+    SHEET_WIDTH = 12
     image_paths = os.listdir(STACK_PATH)
 
     sprite_slices = [STACK_PATH + path for path in image_paths if path.endswith("png")]
@@ -103,14 +130,17 @@ if __name__ == '__main__':
     # Load the images and stack them
     stacked_images = []
     for slices in sprite_slices:
+        print("sourcing: ", slices)
         images = load_image(slices)
         stacked_image = sprite_stack(images)  # Adjust offset as needed
         stacked_images.append(stacked_image)
 
-    # Create a spritesheet (e.g., 4 images per row)
-    spritesheet = create_spritesheet(stacked_images)
+    # Create a spritesheet
+    sheet_width = SHEET_WIDTH
+    spritesheet = create_spritesheet(stacked_images, sheet_width=sheet_width)
 
     # Save the spritesheet to a file
     save_image(spritesheet, OUTPUT_PATH)
+    save_map(sprite_slices, "temp.json", SHEET_WIDTH)
 
     print("Spritesheet created and saved as '%s'" % OUTPUT_PATH)
