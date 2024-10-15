@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	LEVEL_CONST_GROUND = "ground"
 	LEVEL_CONST_STACKS = "stacks"
 )
 
@@ -29,7 +30,9 @@ func loadLevel(map_path string, am *AssetManager) Level {
 
 func (l *Level) Draw(screen *ebiten.Image) {
 	for _, layer := range l.tiled_map.Layers {
-		if layer.Name == LEVEL_CONST_STACKS {
+		// we figure out how to treat the objects from the name of the layer
+		switch layer.Name {
+		case LEVEL_CONST_GROUND, LEVEL_CONST_STACKS:
 			for i, tile := range layer.Tiles {
 				if tile.Nil {
 					continue
