@@ -40,7 +40,7 @@ func (l *Level) Draw(screen *ebiten.Image, camera Camera) {
 				x := float64(i % l.tiled_map.Width)
 				y := float64(i / l.tiled_map.Width)
 				sprite := l.am.stacked_map[tile.GetTileRect()]
-				DrawStackedSprite(sprite, screen, x*SPRITE_SIZE - camera.Offset.X, y*SPRITE_SIZE - camera.Offset.Y, 0)
+				DrawStackedSprite(sprite, screen, x*SPRITE_SIZE-camera.Offset.X, y*SPRITE_SIZE-camera.Offset.Y, 0)
 			}
 		}
 	}
