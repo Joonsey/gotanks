@@ -60,6 +60,7 @@ type Game struct {
 	level  Level
 	am     *AssetManager
 	camera Camera
+	time   float64
 }
 
 func (g *Game) GetTargetCameraPosition() Position {
@@ -79,11 +80,12 @@ func (g *Game) GetTargetCameraPosition() Position {
 func (g *Game) Update() error {
 	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
+	g.time += 0.01
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.level.Draw(screen, g.camera)
+	g.level.Draw(screen, g, g.camera)
 	g.tank.Draw(screen, g.camera)
 }
 
