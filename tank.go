@@ -24,8 +24,9 @@ type Tank struct {
 }
 
 func (t *Tank) Draw(screen *ebiten.Image, camera Camera) {
-	x, y := t.X-camera.Offset.X, t.Y-camera.Offset.Y
-	DrawStackedSprite(t.sprites, screen, x, y, t.rotation)
+	x, y := camera.GetRelativePosition(t.X, t.Y)
+
+	DrawStackedSprite(t.sprites, screen, x, y, t.rotation-camera.rotation)
 	DrawStackedSprite(t.turret.sprites, screen, x, y-3, t.turret.rotation)
 }
 
@@ -55,5 +56,8 @@ func (t *Tank) Update(g *Game) {
 	}
 
 	x, y := ebiten.CursorPosition()
-	t.turret.rotation = -math.Atan2(t.X-g.camera.Offset.X-float64(x), t.Y-g.camera.Offset.Y-float64(y))
+
+	rel_x, rel_y := g.camera.GetRelativePosition(t.X, t.Y)
+
+	t.turret.rotation = -math.Atan2(rel_x-float64(x), rel_y-float64(y))
 }

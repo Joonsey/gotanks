@@ -64,23 +64,26 @@ type Game struct {
 }
 
 func (g *Game) GetTargetCameraPosition() Position {
-	targetX := g.tank.X - RENDER_WIDTH/2
-	targetX = max(0, targetX)
-	targetX = min(float64(g.level.tiled_map.Width*SPRITE_SIZE-RENDER_WIDTH), targetX)
-
-	targetY := g.tank.Y - RENDER_HEIGHT/2
-	targetY = max(0, targetY)
-	targetY = min(float64(g.level.tiled_map.Height*SPRITE_SIZE-RENDER_HEIGHT), targetY)
-
 	// TODO should perhaps offset by relative mouse position to give the illusion of 'zoom' or 'focus'
+	targetX := float64(RENDER_WIDTH) / 2
+	targetY := float64(RENDER_HEIGHT) / 2
 
-	return Position{targetX, targetY}
+	// Step 2: Apply rotation to the camera's offset
+	rotated_x := targetX*math.Cos(g.camera.rotation) - targetY*math.Sin(g.camera.rotation)
+	rotated_y := targetX*math.Sin(g.camera.rotation) + targetY*math.Cos(g.camera.rotation)
+
+	// Step 3: Calculate the final camera position by adding the rotated offset to the tank's position
+	return Position{
+		X: g.tank.X - rotated_x,
+		Y: g.tank.Y - rotated_y,
+	}
 }
 
 func (g *Game) Update() error {
 	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
 	g.time += 0.01
+
 	return nil
 }
 
@@ -120,6 +123,7 @@ func main() {
 	game.am = &AssetManager{}
 	game.am.Init("temp.json")
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am)
+	game.camera.rotation = -46*math.Pi/180
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)

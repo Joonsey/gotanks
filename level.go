@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -18,6 +19,7 @@ package main
 var Time float
 var Resolution vec2
 var Camera vec2
+var CameraRotation float
 
 // Random function for generating pseudo-random values
 func rand(st vec2) float {
@@ -45,6 +47,19 @@ func noise(st vec2) float {
     return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y
 }
 
+func rotateUV(uv vec2, center vec2, angle float) vec2 {
+    var s = sin(angle)
+    var c = cos(angle)
+
+    // Translate UV to origin, rotate, and translate back
+    var rotatedUV = vec2(
+        uv.x * c - uv.y * s,
+        uv.x * s + uv.y * c,
+    )
+
+    return rotatedUV
+}
+
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
     // Normalize pixel coordinates
     var uv = position.xy / Resolution
@@ -54,6 +69,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
     uv.y += Time * 0.05
 
 	uv += Camera / Resolution
+
+	uv = rotateUV(uv, vec2(0.5, 0.5), CameraRotation)
 
     // Increase the frequency of the noise pattern for smaller "waves"
     var frequency = 15.0
@@ -127,20 +144,28 @@ func loadLevel(map_path string, am *AssetManager) Level {
 	return level
 }
 
-func (l *Level) Draw(screen *ebiten.Image, g* Game, camera Camera) {
+func (l* Level) drawWater(screen *ebiten.Image, g* Game, camera Camera) {
 	opts := &ebiten.DrawTrianglesShaderOptions{}
     opts.Uniforms = map[string]interface{}{
         "Time":       g.time,
         "Camera":     []float32{float32(camera.Offset.X), float32(camera.Offset.Y)},
+        "CameraRotation": float32(camera.rotation),
         "Resolution": []float32{float32(screen.Bounds().Dx()), float32(screen.Bounds().Dy())},
     }
 
 	for _, polygon := range l.water_polygons {
 		path := vector.Path{}
-		cam_x, cam_y := float32(camera.Offset.X), float32(camera.Offset.Y)
-		path.MoveTo(float32(polygon[0].DstX) - cam_x, float32(polygon[0].DstY) - cam_y)
+
+		cam_x, cam_y := camera.Offset.X, camera.Offset.Y
+		translated_x, translated_y := float64(polygon[0].DstX) - cam_x, float64(polygon[0].DstY) - cam_y
+		render_x := translated_x * math.Cos(camera.rotation) + translated_y * math.Sin(camera.rotation)
+		render_y := -translated_x * math.Sin(camera.rotation) + translated_y * math.Cos(camera.rotation)
+		path.MoveTo(float32(render_x), float32(render_y))
 		for _, p := range polygon[1:] {
-			path.LineTo(float32(p.DstX) - cam_x, float32(p.DstY) - cam_y)
+			translated_x, translated_y := float64(p.DstX) - cam_x, float64(p.DstY) - cam_y
+			render_x := translated_x * math.Cos(camera.rotation) + translated_y * math.Sin(camera.rotation)
+			render_y := -translated_x * math.Sin(camera.rotation) + translated_y * math.Cos(camera.rotation)
+			path.LineTo(float32(render_x), float32(render_y))
 		}
 		path.Close()
 
@@ -148,6 +173,11 @@ func (l *Level) Draw(screen *ebiten.Image, g* Game, camera Camera) {
 		screen.DrawTrianglesShader(vs, is, l.water_shader, opts)
 	}
 
+}
+
+func (l *Level) Draw(screen *ebiten.Image, g* Game, camera Camera) {
+	// this is currently strange. depricating for now
+	// l.drawWater(screen, g, camera)
 	for _, layer := range l.tiled_map.Layers {
 		// we figure out how to treat the objects from the name of the layer
 		switch layer.Name {
@@ -159,16 +189,14 @@ func (l *Level) Draw(screen *ebiten.Image, g* Game, camera Camera) {
 				x := float64(i % l.tiled_map.Width)
 				y := float64(i / l.tiled_map.Width)
 
-				// TODO implement potential rotation (?)
-				// this implementation is naive, need something more dynamic
-				//render_x := (x - y) * (SPRITE_SIZE / 2)
-				//render_y := (x + y) * (SPRITE_SIZE / 2)
-				//DrawStackedSprite(sprite, screen, render_x-camera.Offset.X, render_y-camera.Offset.Y, 45*math.Pi / 180)
-
 				sprite := l.am.stacked_map[tile.GetTileRect()]
-				render_x := x * SPRITE_SIZE
-				render_y := y * SPRITE_SIZE
-				DrawStackedSprite(sprite, screen, render_x-camera.Offset.X, render_y-camera.Offset.Y, 0)
+				translated_x := x * SPRITE_SIZE - camera.Offset.X
+				translated_y := y * SPRITE_SIZE - camera.Offset.Y
+
+				render_x := translated_x * math.Cos(camera.rotation) + translated_y * math.Sin(camera.rotation)
+				render_y := -translated_x * math.Sin(camera.rotation) + translated_y * math.Cos(camera.rotation)
+
+				DrawStackedSprite(sprite, screen, render_x, render_y, -camera.rotation)
 			}
 		}
 	}
