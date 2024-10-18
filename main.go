@@ -123,6 +123,10 @@ func main() {
 	game.am = &AssetManager{}
 	game.am.Init("temp.json")
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am)
+
+	temp_spawn_obj := game.level.spawns[0]
+	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
+
 	game.camera.rotation = -46*math.Pi/180
 
 	if err := ebiten.RunGame(game); err != nil {

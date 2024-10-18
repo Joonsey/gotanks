@@ -30,21 +30,27 @@ func (t *Tank) Draw(screen *ebiten.Image, camera Camera) {
 	DrawStackedSprite(t.turret.sprites, screen, x, y-3, t.turret.rotation)
 }
 
+func (t *Tank) TryMove(g *Game, speed float64) {
+	initial_position := t.Position
+	x := math.Cos(t.rotation)
+	y := math.Sin(t.rotation)
+
+	t.X += x * speed
+	t.Y += y * speed
+	collided_object := g.level.CheckObjectCollision(t.Position)
+	if collided_object != nil {
+		t.Position = initial_position
+	}
+
+}
+
 func (t *Tank) Update(g *Game) {
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
-		x := math.Cos(t.rotation)
-		y := math.Sin(t.rotation)
-
-		t.X += x * SPEED
-		t.Y += y * SPEED
+		t.TryMove(g, SPEED)
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyS) {
-		x := math.Cos(t.rotation)
-		y := math.Sin(t.rotation)
-
-		t.X += x * -SPEED
-		t.Y += y * -SPEED
+		t.TryMove(g, -SPEED)
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
