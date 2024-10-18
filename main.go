@@ -127,7 +127,7 @@ func main() {
 	temp_spawn_obj := game.level.spawns[0]
 	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
 
-	game.camera.rotation = -46*math.Pi/180
+	game.camera.rotation = -46 * math.Pi / 180
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)

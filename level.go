@@ -91,7 +91,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 }
 `
 
-
 type Level struct {
 	tiled_map tiled.Map
 	am        *AssetManager
@@ -148,7 +147,6 @@ func (l *Level) CheckObjectCollision(position Position) *tiled.Object {
 	return nil
 }
 
-
 func loadLevel(map_path string, am *AssetManager) Level {
 	game_map, err := tiled.LoadFile(map_path)
 	if err != nil {
@@ -156,8 +154,8 @@ func loadLevel(map_path string, am *AssetManager) Level {
 	}
 
 	level := Level{tiled_map: *game_map, am: am}
-    for _, object_group := range level.tiled_map.ObjectGroups {
-        // Loop through ob in the object group
+	for _, object_group := range level.tiled_map.ObjectGroups {
+		// Loop through ob in the object group
 		switch object_group.Name {
 		case "water":
 			level.GetWaterPolygon(object_group)
@@ -177,27 +175,27 @@ func loadLevel(map_path string, am *AssetManager) Level {
 	return level
 }
 
-func (l* Level) drawWater(screen *ebiten.Image, g* Game, camera Camera) {
+func (l *Level) drawWater(screen *ebiten.Image, g *Game, camera Camera) {
 	opts := &ebiten.DrawTrianglesShaderOptions{}
-    opts.Uniforms = map[string]interface{}{
-        "Time":       g.time,
-        "Camera":     []float32{float32(camera.Offset.X), float32(camera.Offset.Y)},
-        "CameraRotation": float32(camera.rotation),
-        "Resolution": []float32{float32(screen.Bounds().Dx()), float32(screen.Bounds().Dy())},
-    }
+	opts.Uniforms = map[string]interface{}{
+		"Time":           g.time,
+		"Camera":         []float32{float32(camera.Offset.X), float32(camera.Offset.Y)},
+		"CameraRotation": float32(camera.rotation),
+		"Resolution":     []float32{float32(screen.Bounds().Dx()), float32(screen.Bounds().Dy())},
+	}
 
 	for _, polygon := range l.water_polygons {
 		path := vector.Path{}
 
 		cam_x, cam_y := camera.Offset.X, camera.Offset.Y
-		translated_x, translated_y := float64(polygon[0].DstX) - cam_x, float64(polygon[0].DstY) - cam_y
-		render_x := translated_x * math.Cos(camera.rotation) + translated_y * math.Sin(camera.rotation)
-		render_y := -translated_x * math.Sin(camera.rotation) + translated_y * math.Cos(camera.rotation)
+		translated_x, translated_y := float64(polygon[0].DstX)-cam_x, float64(polygon[0].DstY)-cam_y
+		render_x := translated_x*math.Cos(camera.rotation) + translated_y*math.Sin(camera.rotation)
+		render_y := -translated_x*math.Sin(camera.rotation) + translated_y*math.Cos(camera.rotation)
 		path.MoveTo(float32(render_x), float32(render_y))
 		for _, p := range polygon[1:] {
-			translated_x, translated_y := float64(p.DstX) - cam_x, float64(p.DstY) - cam_y
-			render_x := translated_x * math.Cos(camera.rotation) + translated_y * math.Sin(camera.rotation)
-			render_y := -translated_x * math.Sin(camera.rotation) + translated_y * math.Cos(camera.rotation)
+			translated_x, translated_y := float64(p.DstX)-cam_x, float64(p.DstY)-cam_y
+			render_x := translated_x*math.Cos(camera.rotation) + translated_y*math.Sin(camera.rotation)
+			render_y := -translated_x*math.Sin(camera.rotation) + translated_y*math.Cos(camera.rotation)
 			path.LineTo(float32(render_x), float32(render_y))
 		}
 		path.Close()
@@ -208,7 +206,7 @@ func (l* Level) drawWater(screen *ebiten.Image, g* Game, camera Camera) {
 
 }
 
-func (l *Level) Draw(screen *ebiten.Image, g* Game, camera Camera) {
+func (l *Level) Draw(screen *ebiten.Image, g *Game, camera Camera) {
 	// this is currently strange. depricating for now
 	// l.drawWater(screen, g, camera)
 	for _, layer := range l.tiled_map.Layers {
@@ -223,11 +221,11 @@ func (l *Level) Draw(screen *ebiten.Image, g* Game, camera Camera) {
 				y := float64(i / l.tiled_map.Width)
 
 				sprite := l.am.stacked_map[tile.GetTileRect()]
-				translated_x := x * SPRITE_SIZE - camera.Offset.X
-				translated_y := y * SPRITE_SIZE - camera.Offset.Y
+				translated_x := x*SPRITE_SIZE - camera.Offset.X
+				translated_y := y*SPRITE_SIZE - camera.Offset.Y
 
-				render_x := translated_x * math.Cos(camera.rotation) + translated_y * math.Sin(camera.rotation)
-				render_y := -translated_x * math.Sin(camera.rotation) + translated_y * math.Cos(camera.rotation)
+				render_x := translated_x*math.Cos(camera.rotation) + translated_y*math.Sin(camera.rotation)
+				render_y := -translated_x*math.Sin(camera.rotation) + translated_y*math.Cos(camera.rotation)
 
 				DrawStackedSprite(sprite, screen, render_x, render_y, -camera.rotation)
 			}

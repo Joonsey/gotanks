@@ -7,7 +7,7 @@ import (
 )
 
 type Camera struct {
-	Offset Position
+	Offset   Position
 	rotation float64
 }
 
@@ -36,8 +36,8 @@ func (c *Camera) GetRelativePosition(abs_x, abs_y float64) (float64, float64) {
 	translated_x := abs_x - c.Offset.X
 	translated_y := abs_y - c.Offset.Y
 
-	rel_x := translated_x * math.Cos(c.rotation) + translated_y * math.Sin(c.rotation)
-	rel_y := -translated_x * math.Sin(c.rotation) + translated_y * math.Cos(c.rotation)
+	rel_x := translated_x*math.Cos(c.rotation) + translated_y*math.Sin(c.rotation)
+	rel_y := -translated_x*math.Sin(c.rotation) + translated_y*math.Cos(c.rotation)
 
 	return rel_x, rel_y
 }
