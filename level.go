@@ -96,35 +96,58 @@ type Level struct {
 	tiled_map tiled.Map
 	am        *AssetManager
 
+	spawns     []tiled.Object
+	collisions []tiled.Object
+
 	water_polygons [][]ebiten.Vertex
 	water_shader   *ebiten.Shader
 }
 
-func (l *Level) GetWaterPolygon() {
-    // Loop through the object layers in the map
-    for _, layer := range l.tiled_map.ObjectGroups {
-        // Loop through ob in the object group
-        if layer.Name == "water" {
-			for _, object := range layer.Objects {
-                // Extract the vertices from the polygon
-                var vertices []ebiten.Vertex
+func (l *Level) GetWaterPolygon(object_group *tiled.ObjectGroup) {
+	for _, object := range object_group.Objects {
+		// Extract the vertices from the polygon
+		var vertices []ebiten.Vertex
 
-                for _, polygons := range object.Polygons {
-					for _, point := range *polygons.Points {
-						vertices = append(vertices, ebiten.Vertex{
-							DstX: float32(object.X + point.X),
-							DstY: float32(object.Y + point.Y),
-							SrcX: 0, // Texture coordinates not needed for plain shader
-							SrcY: 0,
-						})
-					}
-                }
+		for _, polygons := range object.Polygons {
+			for _, point := range *polygons.Points {
+				vertices = append(vertices, ebiten.Vertex{
+					DstX: float32(object.X + point.X),
+					DstY: float32(object.Y + point.Y),
+					SrcX: 0, // Texture coordinates not needed for plain shader
+					SrcY: 0,
+				})
+			}
+		}
 
-                l.water_polygons = append(l.water_polygons, vertices)
-            }
-        }
-    }
+		l.water_polygons = append(l.water_polygons, vertices)
+	}
 }
+
+func (l *Level) GetCollisions(object_group *tiled.ObjectGroup) {
+	for _, object := range object_group.Objects {
+		l.collisions = append(l.collisions, *object)
+	}
+}
+
+func (l *Level) GetSpawns(object_group *tiled.ObjectGroup) {
+	for _, object := range object_group.Objects {
+		l.spawns = append(l.spawns, *object)
+	}
+}
+
+func (l *Level) CheckObjectCollision(position Position) *tiled.Object {
+	for _, object := range l.collisions {
+		if object.X < position.X+SPRITE_SIZE &&
+			object.X+object.Width > position.X &&
+			object.Y < position.Y+SPRITE_SIZE &&
+			object.Y+object.Height > position.Y {
+			return &object
+		}
+	}
+
+	return nil
+}
+
 
 func loadLevel(map_path string, am *AssetManager) Level {
 	game_map, err := tiled.LoadFile(map_path)
@@ -133,7 +156,17 @@ func loadLevel(map_path string, am *AssetManager) Level {
 	}
 
 	level := Level{tiled_map: *game_map, am: am}
-	level.GetWaterPolygon()
+    for _, object_group := range level.tiled_map.ObjectGroups {
+        // Loop through ob in the object group
+		switch object_group.Name {
+		case "water":
+			level.GetWaterPolygon(object_group)
+		case "collisions":
+			level.GetCollisions(object_group)
+		case "spawn":
+			level.GetSpawns(object_group)
+		}
+	}
 
 	water_shader, err := ebiten.NewShader([]byte(waterShaderSrc))
 	if err != nil {

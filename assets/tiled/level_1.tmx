@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="14">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="45">
  <tileset firstgid="1" source="stacked_tilemap.tsx"/>
  <layer id="2" name="ground" width="30" height="20" locked="1">
   <data encoding="csv">
@@ -49,6 +49,25 @@
 7,7,7,7,7,7,7,7,7,7,7,6,7,7,7,6,7,7,7,6,7,7,7,7,7,7,7,7,7,7
 </data>
  </layer>
+ <objectgroup id="4" name="collisions">
+  <object id="32" x="0" y="0" width="16" height="320"/>
+  <object id="33" x="16" y="304" width="464" height="16"/>
+  <object id="34" x="464" y="0" width="16" height="304"/>
+  <object id="35" x="16" y="0" width="448" height="16"/>
+  <object id="36" x="176" y="48" width="64" height="16"/>
+  <object id="37" x="224" y="64" width="16" height="64"/>
+  <object id="38" x="240" y="208" width="16" height="16"/>
+  <object id="39" x="240" y="160" width="16" height="16"/>
+  <object id="40" x="208" y="224" width="16" height="16"/>
+  <object id="41" x="144" y="144" width="16" height="16"/>
+  <object id="42" x="112" y="144" width="16" height="16"/>
+  <object id="43" x="112" y="112" width="16" height="16"/>
+ </objectgroup>
+ <objectgroup id="5" name="spawn">
+  <object id="44" x="81.3333" y="55.3333">
+   <point/>
+  </object>
+ </objectgroup>
  <objectgroup id="3" name="water">
   <object id="12" x="256" y="48">
    <polygon points="0,0 0,192 -64,192 -64,240 -176,240 -176,80 -96,80 -96,0"/>
