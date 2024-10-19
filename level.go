@@ -209,25 +209,33 @@ func (l *Level) drawWater(screen *ebiten.Image, g *Game, camera Camera) {
 func (l *Level) Draw(screen *ebiten.Image, g *Game, camera Camera) {
 	// this is currently strange. depricating for now
 	// l.drawWater(screen, g, camera)
+
 	for _, layer := range l.tiled_map.Layers {
 		// we figure out how to treat the objects from the name of the layer
 		switch layer.Name {
 		case LEVEL_CONST_GROUND, LEVEL_CONST_STACKS:
+			_draw_data := []DrawData{}
 			for i, tile := range layer.Tiles {
-				if tile.Nil {
+				i_x := float64(i % l.tiled_map.Width)
+				i_y := float64(i / l.tiled_map.Width)
+
+				rel_x, rel_y := camera.GetRelativePosition(i_x * SPRITE_SIZE, i_y * SPRITE_SIZE)
+				_draw_data = append(_draw_data, DrawData{tile, Position{rel_x, rel_y}})
+			}
+
+			sort.Slice(_draw_data, func(i, j int) bool {
+				i_obj := _draw_data[i]
+				j_obj := _draw_data[j]
+				// Compare the transformed Y values
+				return i_obj.position.Y < j_obj.position.Y
+			})
+
+			for _, data := range _draw_data {
+				if data.tile.Nil {
 					continue
 				}
-				x := float64(i % l.tiled_map.Width)
-				y := float64(i / l.tiled_map.Width)
-
-				sprite := l.am.stacked_map[tile.GetTileRect()]
-				translated_x := x*SPRITE_SIZE - camera.Offset.X
-				translated_y := y*SPRITE_SIZE - camera.Offset.Y
-
-				render_x := translated_x*math.Cos(camera.rotation) + translated_y*math.Sin(camera.rotation)
-				render_y := -translated_x*math.Sin(camera.rotation) + translated_y*math.Cos(camera.rotation)
-
-				DrawStackedSprite(sprite, screen, render_x, render_y, -camera.rotation)
+				sprite := l.am.stacked_map[data.tile.GetTileRect()]
+				DrawStackedSprite(sprite, screen, data.position.X, data.position.Y, -camera.rotation)
 			}
 		}
 	}
