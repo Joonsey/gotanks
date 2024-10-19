@@ -23,10 +23,15 @@ type Tank struct {
 	turret   Turret
 }
 
-func (t *Tank) Draw(screen *ebiten.Image, camera Camera) {
+func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
 
-	DrawStackedSprite(t.sprites, screen, x, y, t.rotation-camera.rotation)
+	g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.rotation - camera.rotation, Position{}})
+	g.draw_data = append(g.draw_data, DrawData{t.turret.sprites, Position{x, y + 1}, t.turret.rotation, Position{0, -4}})
+}
+
+func (t *Tank) DrawTurret(screen *ebiten.Image, camera Camera) {
+	x, y := camera.GetRelativePosition(t.X, t.Y)
 	DrawStackedSprite(t.turret.sprites, screen, x, y-3, t.turret.rotation)
 }
 

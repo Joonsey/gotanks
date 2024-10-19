@@ -206,36 +206,44 @@ func (l *Level) drawWater(screen *ebiten.Image, g *Game, camera Camera) {
 
 }
 
-func (l *Level) Draw(screen *ebiten.Image, g *Game, camera Camera) {
+func (l *Level) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 	// this is currently strange. depricating for now
 	// l.drawWater(screen, g, camera)
 
 	for _, layer := range l.tiled_map.Layers {
 		// we figure out how to treat the objects from the name of the layer
 		switch layer.Name {
-		case LEVEL_CONST_GROUND, LEVEL_CONST_STACKS:
-			_draw_data := []DrawData{}
+		case LEVEL_CONST_GROUND:
 			for i, tile := range layer.Tiles {
+				if tile.Nil {
+					continue
+				}
+
 				i_x := float64(i % l.tiled_map.Width)
 				i_y := float64(i / l.tiled_map.Width)
 
-				rel_x, rel_y := camera.GetRelativePosition(i_x * SPRITE_SIZE, i_y * SPRITE_SIZE)
-				_draw_data = append(_draw_data, DrawData{tile, Position{rel_x, rel_y}})
+				rel_x, rel_y := camera.GetRelativePosition(i_x*SPRITE_SIZE, i_y*SPRITE_SIZE)
+				// we offset the 'real' position by the entire size of the level
+				// to ensure it's rendered first
+				// we then render it at the negative offset such that it's drawn where we intend, just in a doctored order
+				offset := float64(l.tiled_map.Width * SPRITE_SIZE)
+				rel_x -= offset
+				rel_y -= offset
+				sprites := l.am.stacked_map[tile.GetTileRect()]
+				g.draw_data = append(g.draw_data, DrawData{sprites, Position{rel_x, rel_y}, -camera.rotation, Position{offset, offset}})
 			}
-
-			sort.Slice(_draw_data, func(i, j int) bool {
-				i_obj := _draw_data[i]
-				j_obj := _draw_data[j]
-				// Compare the transformed Y values
-				return i_obj.position.Y < j_obj.position.Y
-			})
-
-			for _, data := range _draw_data {
-				if data.tile.Nil {
+		case LEVEL_CONST_STACKS:
+			for i, tile := range layer.Tiles {
+				if tile.Nil {
 					continue
 				}
-				sprite := l.am.stacked_map[data.tile.GetTileRect()]
-				DrawStackedSprite(sprite, screen, data.position.X, data.position.Y, -camera.rotation)
+
+				i_x := float64(i % l.tiled_map.Width)
+				i_y := float64(i / l.tiled_map.Width)
+
+				rel_x, rel_y := camera.GetRelativePosition(i_x*SPRITE_SIZE, i_y*SPRITE_SIZE)
+				sprites := l.am.stacked_map[tile.GetTileRect()]
+				g.draw_data = append(g.draw_data, DrawData{sprites, Position{rel_x, rel_y}, -camera.rotation, Position{}})
 			}
 		}
 	}

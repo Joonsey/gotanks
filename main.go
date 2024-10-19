@@ -4,6 +4,7 @@ import (
 	"image"
 	"log"
 	"math"
+	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -21,6 +22,13 @@ const (
 
 type Position struct {
 	X, Y float64
+}
+
+type DrawData struct {
+	sprites  []*ebiten.Image
+	position Position
+	rotation float64
+	offset   Position
 }
 
 func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64) {
@@ -61,6 +69,8 @@ type Game struct {
 	am     *AssetManager
 	camera Camera
 	time   float64
+
+	draw_data []DrawData
 }
 
 func (g *Game) GetTargetCameraPosition() Position {
@@ -88,8 +98,26 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.level.Draw(screen, g, g.camera)
-	g.tank.Draw(screen, g.camera)
+	g.level.GetDrawData(screen, g, g.camera)
+	g.tank.GetDrawData(screen, g, g.camera)
+
+	sort.Slice(g.draw_data, func(i, j int) bool {
+		i_obj := g.draw_data[i]
+		j_obj := g.draw_data[j]
+		// Compare the transformed Y values
+		return i_obj.position.Y < j_obj.position.Y
+	})
+
+	for _, data := range g.draw_data {
+		DrawStackedSprite(
+			data.sprites,
+			screen,
+			data.position.X+data.offset.X,
+			data.position.Y+data.offset.Y,
+			data.rotation)
+	}
+
+	g.draw_data = []DrawData{}
 }
 
 func (g *Game) Layout(screenWidth, screenHeight int) (renderWidth, renderHeight int) {
