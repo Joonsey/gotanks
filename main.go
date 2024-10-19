@@ -70,7 +70,8 @@ type Game struct {
 	camera Camera
 	time   float64
 
-	draw_data []DrawData
+	draw_data  []DrawData
+	tracks []Track
 }
 
 func (g *Game) GetTargetCameraPosition() Position {
@@ -94,12 +95,29 @@ func (g *Game) Update() error {
 	g.camera.Update(g.GetTargetCameraPosition())
 	g.time += 0.01
 
+	tracks := []Track{}
+	for _, track := range g.tracks {
+		track.lifetime--
+		if track.lifetime >= 0 {
+			tracks = append(tracks, track)
+		}
+	}
+
+	g.tracks = tracks
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.level.GetDrawData(screen, g, g.camera)
 	g.tank.GetDrawData(screen, g, g.camera)
+
+
+	for _, track := range g.tracks {
+		x, y := g.camera.GetRelativePosition(track.X, track.Y)
+		offset := float64(8);
+		g.draw_data = append(g.draw_data, DrawData{g.tank.track_sprites, Position{x,y - offset}, track.rotation - g.camera.rotation, Position{0, offset}})
+	}
 
 	sort.Slice(g.draw_data, func(i, j int) bool {
 		i_obj := g.draw_data[i]
@@ -138,9 +156,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	track_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/tracks.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	tank := Tank{
 		Position: Position{0, 0},
 		sprites:  SplitSprites(img),
+		track_sprites: []*ebiten.Image{track_img},
 		turret: Turret{
 			sprites: SplitSprites(turret_img),
 		},

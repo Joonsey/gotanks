@@ -9,6 +9,8 @@ import (
 const (
 	SPEED          = 2
 	ROTATION_SPEED = .04
+	TRACK_LIFETIME = 64
+	TRACK_INTERVAL = 8
 )
 
 type Turret struct {
@@ -16,11 +18,19 @@ type Turret struct {
 	rotation float64
 }
 
+type Track struct {
+	Position
+	rotation float64
+	lifetime int
+}
+
 type Tank struct {
 	Position
 	sprites  []*ebiten.Image
 	rotation float64
 	turret   Turret
+
+	track_sprites []*ebiten.Image
 }
 
 func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
@@ -28,6 +38,9 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 
 	g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.rotation - camera.rotation, Position{}})
 	g.draw_data = append(g.draw_data, DrawData{t.turret.sprites, Position{x, y + 1}, t.turret.rotation, Position{0, -4}})
+	if int(g.time * 100) % TRACK_INTERVAL == 0 {
+		g.tracks = append(g.tracks, Track{t.Position, t.rotation, TRACK_LIFETIME})
+	}
 }
 
 func (t *Tank) DrawTurret(screen *ebiten.Image, camera Camera) {
