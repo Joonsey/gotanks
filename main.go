@@ -71,8 +71,8 @@ type Game struct {
 	camera Camera
 	time   float64
 
-	draw_data  []DrawData
-	tracks []Track
+	draw_data []DrawData
+	tracks    []Track
 }
 
 func (g *Game) GetTargetCameraPosition() Position {
@@ -115,11 +115,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.tank.GetDrawData(screen, g, g.camera)
 	g.gm.GetDrawData(screen, g)
 
-
 	for _, track := range g.tracks {
 		x, y := g.camera.GetRelativePosition(track.X, track.Y)
-		offset := float64(8);
-		g.draw_data = append(g.draw_data, DrawData{g.tank.track_sprites, Position{x,y - offset}, track.rotation - g.camera.rotation, Position{0, offset}})
+		offset := float64(8)
+		g.draw_data = append(g.draw_data, DrawData{g.tank.track_sprites, Position{x, y - offset}, track.rotation - g.camera.rotation, Position{0, offset}})
 	}
 
 	sort.Slice(g.draw_data, func(i, j int) bool {
@@ -165,8 +164,8 @@ func main() {
 	}
 
 	tank := Tank{
-		Position: Position{0, 0},
-		sprites:  SplitSprites(img),
+		Position:      Position{0, 0},
+		sprites:       SplitSprites(img),
 		track_sprites: []*ebiten.Image{track_img},
 		turret: Turret{
 			sprites: SplitSprites(turret_img),

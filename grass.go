@@ -9,14 +9,14 @@ import (
 type Grass struct {
 	Position
 	rotation float64
-	sprite *ebiten.Image
+	sprite   *ebiten.Image
 }
 
 type GrassManager struct {
-	stiffness  int
-	sway	   float64
-	t		   float64
-	reversed   bool
+	stiffness int
+	sway      float64
+	t         float64
+	reversed  bool
 
 	grass []Grass
 }
@@ -31,7 +31,7 @@ func (gm *GrassManager) Reset() {
 	gm.grass = []Grass{}
 }
 
-func (g *Grass) GetDrawData(screen *ebiten.Image, camera Camera, gm *GrassManager) (DrawData) {
+func (g *Grass) GetDrawData(screen *ebiten.Image, camera Camera, gm *GrassManager) DrawData {
 	x, y := camera.GetRelativePosition(g.X, g.Y)
 	rotation := gm.sway + math.Cos(g.Y)
 	return DrawData{
@@ -45,9 +45,9 @@ func (g *Grass) GetDrawData(screen *ebiten.Image, camera Camera, gm *GrassManage
 func (g *Grass) Update() {
 	reset_factor := 0.1
 	if g.rotation > 0 {
-		g.rotation = max(g.rotation - reset_factor, 0)
+		g.rotation = max(g.rotation-reset_factor, 0)
 	} else if g.rotation < 0 {
-		g.rotation = min(g.rotation + reset_factor, 0)
+		g.rotation = min(g.rotation+reset_factor, 0)
 	}
 }
 

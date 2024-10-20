@@ -169,14 +169,14 @@ func (l *Level) MakeGrass(object_group *tiled.ObjectGroup, gm *GrassManager) {
 			for x := range int(object.Width) / multiple {
 				entropy := rand.Intn(100)
 				position := Position{
-					float64(multiple * x) + object.X,
-					float64(multiple * y) + object.Y,
+					float64(multiple*x) + object.X,
+					float64(multiple*y) + object.Y,
 				}
 
 				gm.AddGrass(Grass{
 					Position: position,
 					rotation: 0,
-					sprite: grass_sprites[(i * entropy) % 6],
+					sprite:   grass_sprites[(i*entropy)%6],
 				})
 				i++
 			}
