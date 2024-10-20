@@ -25,13 +25,14 @@ type Position struct {
 }
 
 type DrawData struct {
-	sprites  []*ebiten.Image
-	position Position
-	rotation float64
-	offset   Position
+	sprites   []*ebiten.Image
+	position  Position
+	rotation  float64
+	intensity float32
+	offset    Position
 }
 
-func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64) {
+func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64, intensity float32) {
 	for i, image := range source {
 		op := &ebiten.DrawImageOptions{}
 
@@ -43,6 +44,11 @@ func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotat
 		op.GeoM.Translate(half_size, half_size)
 
 		op.GeoM.Translate(x, y-float64(i))
+		scale := ebiten.ColorScale{}
+		scale.SetR(intensity)
+		scale.SetG(intensity)
+		scale.SetB(intensity)
+		op.ColorScale.ScaleWithColorScale(scale)
 		screen.DrawImage(image, op)
 	}
 }
@@ -118,7 +124,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, track := range g.tracks {
 		x, y := g.camera.GetRelativePosition(track.X, track.Y)
 		offset := float64(8)
-		g.draw_data = append(g.draw_data, DrawData{g.tank.track_sprites, Position{x, y - offset}, track.rotation - g.camera.rotation, Position{0, offset}})
+		g.draw_data = append(g.draw_data, DrawData{g.tank.track_sprites, Position{x, y - offset}, track.rotation - g.camera.rotation, 1, Position{0, offset}})
 	}
 
 	sort.Slice(g.draw_data, func(i, j int) bool {
@@ -134,7 +140,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			screen,
 			data.position.X+data.offset.X,
 			data.position.Y+data.offset.Y,
-			data.rotation)
+			data.rotation,
+			data.intensity,
+		)
 	}
 
 	g.draw_data = []DrawData{}

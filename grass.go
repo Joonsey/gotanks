@@ -34,10 +34,12 @@ func (gm *GrassManager) Reset() {
 func (g *Grass) GetDrawData(screen *ebiten.Image, camera Camera, gm *GrassManager) DrawData {
 	x, y := camera.GetRelativePosition(g.X, g.Y)
 	rotation := gm.sway + math.Cos(g.Y)
+	intensity := max(1/1-float32(math.Sqrt(g.rotation*g.rotation)), 0.8)
 	return DrawData{
 		[]*ebiten.Image{g.sprite},
 		Position{x, y},
 		g.rotation + rotation,
+		intensity,
 		Position{},
 	}
 }

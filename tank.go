@@ -36,8 +36,8 @@ type Tank struct {
 func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
 
-	g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.rotation - camera.rotation, Position{}})
-	g.draw_data = append(g.draw_data, DrawData{t.turret.sprites, Position{x, y + 1}, t.turret.rotation, Position{0, -4}})
+	g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.rotation - camera.rotation, 1, Position{}})
+	g.draw_data = append(g.draw_data, DrawData{t.turret.sprites, Position{x, y + 1}, t.turret.rotation, 1, Position{0, -4}})
 	if int(g.time*100)%TRACK_INTERVAL == 0 {
 		g.tracks = append(g.tracks, Track{t.Position, t.rotation, TRACK_LIFETIME})
 	}
@@ -45,7 +45,7 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 
 func (t *Tank) DrawTurret(screen *ebiten.Image, camera Camera) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
-	DrawStackedSprite(t.turret.sprites, screen, x, y-3, t.turret.rotation)
+	DrawStackedSprite(t.turret.sprites, screen, x, y-3, t.turret.rotation, 1)
 }
 
 func (t *Tank) TryMove(g *Game, speed float64) {
