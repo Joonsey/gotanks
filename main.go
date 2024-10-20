@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"log"
 	"math"
@@ -67,6 +68,7 @@ type Game struct {
 	tank   Tank
 	level  Level
 	am     *AssetManager
+	gm     *GrassManager
 	camera Camera
 	time   float64
 
@@ -93,6 +95,7 @@ func (g *Game) GetTargetCameraPosition() Position {
 func (g *Game) Update() error {
 	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
+	g.gm.Update(g)
 	g.time += 0.01
 
 	tracks := []Track{}
@@ -111,6 +114,7 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.level.GetDrawData(screen, g, g.camera)
 	g.tank.GetDrawData(screen, g, g.camera)
+	g.gm.GetDrawData(screen, g)
 
 
 	for _, track := range g.tracks {
@@ -176,10 +180,22 @@ func main() {
 	game.am.Init("temp.json")
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am)
 
+	game.camera.rotation = -46 * math.Pi / 180
+
+	game.gm = &GrassManager{}
+	for x := range 25 {
+		x_float := float64(x)
+		for i := range 6 {
+			grass, _, err := ebitenutil.NewImageFromFile(fmt.Sprintf("assets/sprites/grass_%d.png", i))
+			if err != nil {
+				log.Fatal(err)
+			}
+			float_i := float64(i)
+			game.gm.AddGrass(Grass{Position: Position{100 + x_float*3 + float_i * 2 + float_i, 200}, rotation: float_i / 3, sprite: grass})
+		}
+	}
 	temp_spawn_obj := game.level.spawns[0]
 	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
-
-	game.camera.rotation = -46 * math.Pi / 180
 
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)

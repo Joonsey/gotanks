@@ -79,6 +79,8 @@ func (t *Tank) Update(g *Game) {
 		t.rotation += ROTATION_SPEED
 	}
 
+	g.gm.ApplyForce(t.X, t.Y)
+
 	x, y := ebiten.CursorPosition()
 
 	rel_x, rel_y := g.camera.GetRelativePosition(t.X, t.Y)
