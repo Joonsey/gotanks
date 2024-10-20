@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/lafriks/go-tiled"
 )
@@ -147,7 +149,40 @@ func (l *Level) CheckObjectCollision(position Position) *tiled.Object {
 	return nil
 }
 
-func loadLevel(map_path string, am *AssetManager) Level {
+func (l *Level) MakeGrass(object_group *tiled.ObjectGroup, gm *GrassManager) {
+	grass_sprites := []*ebiten.Image{}
+	for i := range 6 {
+		grass, _, err := ebitenutil.NewImageFromFile(fmt.Sprintf("assets/sprites/grass_%d.png", i))
+		if err != nil {
+			log.Fatal(err)
+		}
+		grass_sprites = append(grass_sprites, grass)
+	}
+
+	gm.Reset()
+
+	i := 0
+	multiple := 2
+	for _, object := range object_group.Objects {
+		for y := range int(object.Height) / multiple {
+			for x := range int(object.Width) / multiple {
+				position := Position{
+					float64(multiple * x) + object.X,
+					float64(multiple * y) + object.Y,
+				}
+				gm.AddGrass(Grass{
+					Position: position,
+					rotation: 0,
+					sprite: grass_sprites[i % 6],
+				})
+
+				i++
+			}
+		}
+	}
+}
+
+func loadLevel(map_path string, am *AssetManager, gm *GrassManager) Level {
 	game_map, err := tiled.LoadFile(map_path)
 	if err != nil {
 		log.Fatal(err)
@@ -163,6 +198,8 @@ func loadLevel(map_path string, am *AssetManager) Level {
 			level.GetCollisions(object_group)
 		case "spawn":
 			level.GetSpawns(object_group)
+		case "grass":
+			level.MakeGrass(object_group, gm)
 		}
 	}
 

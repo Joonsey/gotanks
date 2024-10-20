@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"log"
 	"math"
@@ -178,22 +177,12 @@ func main() {
 
 	game.am = &AssetManager{}
 	game.am.Init("temp.json")
-	game.level = loadLevel("assets/tiled/level_1.tmx", game.am)
 
 	game.camera.rotation = -46 * math.Pi / 180
 
 	game.gm = &GrassManager{}
-	for x := range 25 {
-		x_float := float64(x)
-		for i := range 6 {
-			grass, _, err := ebitenutil.NewImageFromFile(fmt.Sprintf("assets/sprites/grass_%d.png", i))
-			if err != nil {
-				log.Fatal(err)
-			}
-			float_i := float64(i)
-			game.gm.AddGrass(Grass{Position: Position{100 + x_float*3 + float_i * 2 + float_i, 200}, rotation: float_i / 3, sprite: grass})
-		}
-	}
+	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)
+
 	temp_spawn_obj := game.level.spawns[0]
 	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
 
