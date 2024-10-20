@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -161,21 +162,22 @@ func (l *Level) MakeGrass(object_group *tiled.ObjectGroup, gm *GrassManager) {
 
 	gm.Reset()
 
+	multiple := 3
 	i := 0
-	multiple := 2
 	for _, object := range object_group.Objects {
 		for y := range int(object.Height) / multiple {
 			for x := range int(object.Width) / multiple {
+				entropy := rand.Intn(100)
 				position := Position{
 					float64(multiple * x) + object.X,
 					float64(multiple * y) + object.Y,
 				}
+
 				gm.AddGrass(Grass{
 					Position: position,
 					rotation: 0,
-					sprite: grass_sprites[i % 6],
+					sprite: grass_sprites[(i * entropy) % 6],
 				})
-
 				i++
 			}
 		}
