@@ -31,7 +31,7 @@ func (gm *GrassManager) Reset() {
 	gm.grass = []Grass{}
 }
 
-func (g *Grass) GetDrawData(screen *ebiten.Image, camera Camera, gm *GrassManager) DrawData {
+func (g *Grass) GetDrawData(camera Camera, gm *GrassManager) DrawData {
 	x, y := camera.GetRelativePosition(g.X, g.Y)
 	rotation := gm.sway + math.Cos(g.Y)
 	intensity := max(1/1-float32(math.Sqrt(g.rotation*g.rotation)), 0.8)
@@ -63,9 +63,9 @@ func (g *Grass) ApplyForce(x, y float64) {
 
 }
 
-func (gm *GrassManager) GetDrawData(screen *ebiten.Image, g *Game) {
+func (gm *GrassManager) GetDrawData(g *Game) {
 	for _, grass := range gm.grass {
-		g.draw_data = append(g.draw_data, grass.GetDrawData(screen, g.camera, gm))
+		g.draw_data = append(g.draw_data, grass.GetDrawData(g.camera, gm))
 	}
 }
 
