@@ -88,6 +88,8 @@ type Game struct {
 	level  Level
 	am     *AssetManager
 	gm     *GrassManager
+	nm     *NetworkManager
+	bm     *BulletManager
 	camera Camera
 	time   float64
 
@@ -115,6 +117,7 @@ func (g *Game) Update() error {
 	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
 	g.gm.Update(g)
+	g.bm.Update(g)
 	g.time += 0.01
 
 	tracks := []Track{}
@@ -133,7 +136,8 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.level.GetDrawData(screen, g, g.camera)
 	g.tank.GetDrawData(screen, g, g.camera)
-	g.gm.GetDrawData(screen, g)
+	g.gm.GetDrawData(g)
+	g.bm.GetDrawData(g)
 
 	for _, track := range g.tracks {
 		x, y := g.camera.GetRelativePosition(track.X, track.Y)
@@ -194,6 +198,9 @@ func main() {
 	game.am.Init("temp.json")
 
 	game.camera.rotation = -46 * math.Pi / 180
+
+	game.nm = InitNetworkManager()
+	game.bm = InitBulletManager(game.nm, game.am)
 
 	game.gm = &GrassManager{}
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)
