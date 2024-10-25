@@ -41,6 +41,7 @@ func (g *Grass) GetDrawData(screen *ebiten.Image, camera Camera, gm *GrassManage
 		g.rotation + rotation,
 		intensity,
 		Position{},
+		1,
 	}
 }
 

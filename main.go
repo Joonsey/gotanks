@@ -30,9 +30,22 @@ type DrawData struct {
 	rotation  float64
 	intensity float32
 	offset    Position
+	opacity   float32
 }
 
-func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64, intensity float32) {
+func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
+	DrawStackedSprite(
+		data.sprites,
+		screen,
+		data.position.X+data.offset.X,
+		data.position.Y+data.offset.Y,
+		data.rotation,
+		data.intensity,
+		data.opacity,
+	)
+}
+
+func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64, intensity, opacity float32) {
 	for i, image := range source {
 		op := &ebiten.DrawImageOptions{}
 
@@ -48,6 +61,7 @@ func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotat
 		scale.SetR(intensity)
 		scale.SetG(intensity)
 		scale.SetB(intensity)
+		op.ColorScale.ScaleAlpha(opacity)
 		op.ColorScale.ScaleWithColorScale(scale)
 		screen.DrawImage(image, op)
 	}
@@ -124,7 +138,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, track := range g.tracks {
 		x, y := g.camera.GetRelativePosition(track.X, track.Y)
 		offset := float64(8)
-		g.draw_data = append(g.draw_data, DrawData{g.tank.track_sprites, Position{x, y - offset}, track.rotation - g.camera.rotation, 1, Position{0, offset}})
+		opacity := float32(track.lifetime) / float32(TRACK_LIFETIME)
+		g.draw_data = append(g.draw_data, DrawData{g.tank.track_sprites, Position{x, y - offset}, track.rotation - g.camera.rotation, 1, Position{0, offset}, opacity})
 	}
 
 	sort.Slice(g.draw_data, func(i, j int) bool {
@@ -135,14 +150,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	})
 
 	for _, data := range g.draw_data {
-		DrawStackedSprite(
-			data.sprites,
-			screen,
-			data.position.X+data.offset.X,
-			data.position.Y+data.offset.Y,
-			data.rotation,
-			data.intensity,
-		)
+		DrawStackedSpriteDrawData(screen, data)
 	}
 
 	g.draw_data = []DrawData{}
