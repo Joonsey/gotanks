@@ -15,6 +15,26 @@ import (
 
 type AssetManager struct {
 	stacked_map map[image.Rectangle][]*ebiten.Image
+
+	cached_sprites map[string][]*ebiten.Image
+}
+
+func (a *AssetManager) GetSprites(path string) []*ebiten.Image {
+	sprites, ok := a.cached_sprites[path]
+	if ok {
+		return sprites
+	}
+
+	sprite, _, err := ebitenutil.NewImageFromFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// caching requested sprites for future
+	sprite_split := SplitSprites(sprite)
+	a.cached_sprites[path] = sprite_split
+
+	return sprite_split
 }
 
 func (a *AssetManager) Init(config_path string) {
@@ -38,6 +58,7 @@ func (a *AssetManager) Init(config_path string) {
 	}
 
 	a.stacked_map = make(map[image.Rectangle][]*ebiten.Image)
+	a.cached_sprites = make(map[string][]*ebiten.Image)
 
 	// Iterate over the map and print key-value pairs
 	for key, value := range result {
@@ -52,14 +73,14 @@ func (a *AssetManager) Init(config_path string) {
 			log.Fatalf("Failed to convert to INT: %s", err)
 		}
 
-		sprite, _, err := ebitenutil.NewImageFromFile(value.(string))
+		sprite := a.GetSprites(value.(string))
 
 		a.stacked_map[image.Rectangle{
 			image.Point{
 				x * SPRITE_SIZE, y * SPRITE_SIZE},
 			image.Point{
 				(1 + x) * SPRITE_SIZE, (1 + y) * SPRITE_SIZE},
-		}] = SplitSprites(sprite)
+		}] = sprite
 	}
 
 	log.Println("succesfully loaded all stacked sprites")

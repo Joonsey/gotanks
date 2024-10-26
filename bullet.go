@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"math"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type BulletTypeEnum uint
@@ -22,6 +24,7 @@ type BulletManager struct {
 	bullets []Bullet
 
 	network_manager *NetworkManager
+	asset_manager   *AssetManager
 	index           uint
 }
 
@@ -48,7 +51,20 @@ func InitBulletManager(nm *NetworkManager, am *AssetManager) *BulletManager {
 	bm := BulletManager{}
 	bm.network_manager = nm
 
+	bm.asset_manager = am
+
 	return &bm
+}
+
+func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) []*ebiten.Image {
+	switch bullet_type {
+	case BulletTypeStandard:
+		return am.GetSprites("assets/sprites/stacks/bullets.png")
+	case BulletTypeFast:
+		return am.GetSprites("assets/sprites/stacks/bullet-sniper.png")
+	default:
+		return am.GetSprites("assets/sprites/stacks/bullets.png")
+	}
 }
 
 func (bm *BulletManager) AddBullet(bullet Bullet) {
@@ -67,9 +83,9 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 		x, y := g.camera.GetRelativePosition(bullet.X, bullet.Y)
 		g.draw_data = append(g.draw_data,
 			DrawData{
-				g.tank.sprites, // TODO update sprite
+				bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.bullet_type),
 				Position{x, y},
-				bullet.rotation - g.camera.rotation,
+				-bullet.rotation - g.camera.rotation + math.Pi,
 				1,
 				Position{},
 				1,
@@ -77,7 +93,7 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 	}
 }
 
-func (bm *BulletManager) Update(g* Game) {
+func (bm *BulletManager) Update(g *Game) {
 	for i, bullet := range bm.bullets {
 		collided_object := g.level.CheckObjectCollision(bullet.Position)
 		if collided_object == nil {

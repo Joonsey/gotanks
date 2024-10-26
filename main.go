@@ -68,15 +68,16 @@ func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotat
 }
 
 func SplitSprites(source *ebiten.Image) []*ebiten.Image {
-	count := source.Bounds().Dy() / SPRITE_SIZE
+	width := source.Bounds().Dx()
+	count := source.Bounds().Dy() / width
 	sprites := []*ebiten.Image{}
 
 	for i := count - 1; i > 0; i-- {
 		rect := image.Rectangle{}
 		rect.Min.X = 0
-		rect.Max.X = 16
-		rect.Min.Y = i * SPRITE_SIZE
-		rect.Max.Y = (1 + i) * SPRITE_SIZE
+		rect.Max.X = width
+		rect.Min.Y = i * width
+		rect.Max.Y = (1 + i) * width
 		sprites = append(sprites, ebiten.NewImageFromImage(source.SubImage(rect)))
 	}
 
