@@ -46,10 +46,11 @@ func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 }
 
 func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64, intensity, opacity float32) {
+	half_size := float64(source[0].Bounds().Dx()) / 2
+
 	for i, image := range source {
 		op := &ebiten.DrawImageOptions{}
 
-		half_size := float64(SPRITE_SIZE / 2)
 		// moving by half-size to rotate around the center
 		op.GeoM.Translate(-half_size, -half_size)
 		op.GeoM.Rotate(rotation - 90*math.Pi/180)

@@ -87,10 +87,17 @@ func (t *Tank) Update(g *Game) {
 	rel_x, rel_y := g.camera.GetRelativePosition(t.X, t.Y)
 	rel_rotation := -math.Atan2(rel_x-float64(x), rel_y-float64(y))
 	t.turret.rotation = rel_rotation
+	bullet_pos := t.Position
+
+	// offsetting bullet position
+	// this is nessecary because we are shooting from the barrel
+	// not the base
+	bullet_pos.X += 8
+	bullet_pos.Y -= 2
 
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
 		bullet := Bullet{}
-		bullet.Position = t.Position
+		bullet.Position = bullet_pos
 		bullet.rotation = -rel_rotation + -g.camera.rotation + math.Pi
 		bullet.bullet_type = BulletTypeStandard
 
