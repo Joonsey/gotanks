@@ -33,6 +33,21 @@ type DrawData struct {
 	opacity   float32
 }
 
+type Game struct {
+	tank   Tank
+	level  Level
+	am     *AssetManager
+	gm     *GrassManager
+	nm     *NetworkManager
+	bm     *BulletManager
+	camera Camera
+	time   float64
+
+	draw_data []DrawData
+	tracks    []Track
+	tanks     []TankMinimal
+}
+
 func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 	DrawStackedSprite(
 		data.sprites,
@@ -83,20 +98,6 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 	}
 
 	return sprites
-}
-
-type Game struct {
-	tank   Tank
-	level  Level
-	am     *AssetManager
-	gm     *GrassManager
-	nm     *NetworkManager
-	bm     *BulletManager
-	camera Camera
-	time   float64
-
-	draw_data []DrawData
-	tracks    []Track
 }
 
 func (g *Game) GetTargetCameraPosition() Position {
@@ -186,7 +187,7 @@ func main() {
 	}
 
 	tank := Tank{
-		Position:      Position{0, 0},
+		TankMinimal:   TankMinimal{Position: Position{}},
 		sprites:       SplitSprites(img),
 		track_sprites: []*ebiten.Image{track_img},
 		turret: Turret{
@@ -194,6 +195,7 @@ func main() {
 		},
 	}
 
+	tank.turret.rotation = &tank.turret_rotation
 	game := &Game{tank: tank}
 
 	game.am = &AssetManager{}
