@@ -136,6 +136,18 @@ func (l *Level) GetSpawns(object_group *tiled.ObjectGroup) {
 		l.spawns = append(l.spawns, *object)
 	}
 }
+func (l *Level) CheckObjectCollisionWithDimensions(position Position, dimension Position) *tiled.Object {
+	for _, object := range l.collisions {
+		if object.X < position.X+dimension.X &&
+			object.X+object.Width > position.X &&
+			object.Y < position.Y+dimension.Y &&
+			object.Y+object.Height > position.Y {
+			return &object
+		}
+	}
+
+	return nil
+}
 
 func (l *Level) CheckObjectCollision(position Position) *tiled.Object {
 	for _, object := range l.collisions {

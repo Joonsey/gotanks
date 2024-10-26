@@ -30,6 +30,7 @@ type BulletManager struct {
 
 func (bm *BulletManager) Shoot(bullet Bullet) {
 	if bm.network_manager == nil ||
+		bm.network_manager.client == nil ||
 		!bm.network_manager.client.isConnected() {
 
 		bm.AddBullet(bullet)
@@ -37,8 +38,8 @@ func (bm *BulletManager) Shoot(bullet Bullet) {
 	}
 
 	err := bm.network_manager.client.Send(PacketTypeBulletShoot, bullet)
-	if err == nil {
-		log.Fatal(err)
+	if err != nil {
+		log.Panic(err)
 	}
 }
 
@@ -59,11 +60,11 @@ func InitBulletManager(nm *NetworkManager, am *AssetManager) *BulletManager {
 func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) []*ebiten.Image {
 	switch bullet_type {
 	case BulletTypeStandard:
-		return am.GetSprites("assets/sprites/stacks/bullets.png")
+		return am.GetSprites("assets/sprites/stacks/bullet.png")
 	case BulletTypeFast:
 		return am.GetSprites("assets/sprites/stacks/bullet-sniper.png")
 	default:
-		return am.GetSprites("assets/sprites/stacks/bullets.png")
+		return am.GetSprites("assets/sprites/stacks/bullet.png")
 	}
 }
 
@@ -87,7 +88,7 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 				Position{x, y},
 				-bullet.rotation - g.camera.rotation + math.Pi,
 				1,
-				Position{},
+				Position{0, -TURRET_HEIGHT * 2},
 				1,
 			})
 	}
@@ -95,7 +96,9 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 
 func (bm *BulletManager) Update(g *Game) {
 	for i, bullet := range bm.bullets {
-		collided_object := g.level.CheckObjectCollision(bullet.Position)
+		bullet.Position.X += 4
+		bullet.Position.Y += 4
+		collided_object := g.level.CheckObjectCollisionWithDimensions(bullet.Position, Position{4, 4})
 		if collided_object == nil {
 			bm.bullets[i].Update(.5)
 		}
