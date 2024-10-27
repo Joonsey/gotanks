@@ -54,7 +54,7 @@ func (c *Client) Send(packet_type PacketType, data interface{}) error {
 	packet.PacketType = packet_type
 	data_bytes, err := SerializePacket(packet, data)
 
-	if err == nil {
+	if err != nil {
 		return err
 	}
 
@@ -86,9 +86,11 @@ func (c *Client) Listen() {
 }
 
 func (c *Client) Loop(game *Game) {
-	select {
-	case packet_data := <-c.packet_channel:
-		c.HandlePacket(packet_data, game)
+	for {
+		select {
+		case packet_data := <-c.packet_channel:
+			c.HandlePacket(packet_data, game)
+		}
 	}
 }
 

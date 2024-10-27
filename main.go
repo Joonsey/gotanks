@@ -212,6 +212,11 @@ func main() {
 	temp_spawn_obj := game.level.spawns[0]
 	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
 
+	go StartServer()
+
+	go game.nm.client.Listen()
+	go game.nm.client.Loop(game)
+
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
