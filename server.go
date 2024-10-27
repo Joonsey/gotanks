@@ -12,18 +12,19 @@ import (
 
 type ConnectedPlayer struct {
 	tank TankMinimal
+	addr *net.UDPAddr
 }
 
 type ConnectedPlayers struct {
 	sync.RWMutex
-	m map[*net.UDPAddr]ConnectedPlayer
+	m map[string]ConnectedPlayer
 }
 
 type Server struct {
-	conn *net.UDPConn
+	conn                    *net.UDPConn
 	accepts_new_connections bool
 
-	packet_channel chan PacketData
+	packet_channel    chan PacketData
 	connected_players ConnectedPlayers
 
 	bm BulletManager
@@ -40,7 +41,7 @@ func StartServer() {
 	server.conn = conn
 
 	server.packet_channel = make(chan PacketData)
-	server.connected_players.m = make(map[*net.UDPAddr]ConnectedPlayer)
+	server.connected_players.m = make(map[string]ConnectedPlayer)
 
 	server.accepts_new_connections = true
 
@@ -80,8 +81,8 @@ func (s *Server) Broadcast(packet Packet, data interface{}) {
 		log.Panic(err)
 	}
 
-	for key, _ := range s.connected_players.m {
-		s.conn.WriteToUDP(raw_data, key)
+	for _, value := range s.connected_players.m {
+		s.conn.WriteToUDP(raw_data, value.addr)
 	}
 }
 
@@ -95,9 +96,17 @@ func (s *Server) HandlePacket(packet_data PacketData) {
 			log.Panic("error decoding bullet", err)
 		}
 
-		log.Println(bullet)
 		s.Broadcast(packet_data.Packet, bullet)
 		s.bm.AddBullet(bullet)
+	case PacketTypeUpdateCurrentPlayer:
+		s.connected_players.Lock()
+		player := s.connected_players.m[packet_data.Addr.String()]
+		err := dec.Decode(&player.tank)
+		if err != nil {
+			log.Panic("error decoding player", err)
+		}
+		s.connected_players.m[packet_data.Addr.String()] = player
+		s.connected_players.Unlock()
 	}
 }
 
@@ -121,19 +130,19 @@ func (s *Server) AuthorizePacket(packet_data PacketData) error {
 	defer s.connected_players.Unlock()
 
 	for key, _ := range s.connected_players.m {
-		if key == &packet_data.Addr {
+		if key == packet_data.Addr.String() {
 			// authorized, and no erros
 			return nil
 		}
 	}
 
 	if s.accepts_new_connections {
-		s.connected_players.m[&packet_data.Addr] = ConnectedPlayer{}
+		s.connected_players.m[packet_data.Addr.String()] = ConnectedPlayer{addr: &packet_data.Addr}
 
 		// added and authorized
+		log.Println("accepted new connection")
 		return nil
 	}
-
 
 	return errors.New("not authorized")
 }
@@ -151,4 +160,3 @@ func (s *Server) StartHandlingPackets() {
 		}
 	}
 }
-

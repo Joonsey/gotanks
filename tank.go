@@ -110,4 +110,10 @@ func (t *Tank) Update(g *Game) {
 
 		g.bm.Shoot(bullet)
 	}
+
+	if g.nm.client.isConnected() {
+		if int(g.time*100)%16 == 0 {
+			go g.nm.client.Send(PacketTypeUpdateCurrentPlayer, t.TankMinimal)
+		}
+	}
 }
