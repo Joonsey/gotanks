@@ -12,6 +12,10 @@ import (
 const (
 	SERVERPORT  = 7707
 	BUFFER_SIZE = 2048
+
+	// update_interval = fps / desired ticks per second
+	// 3 = 60/20
+	UPDATE_INTERVAL = 3
 )
 
 type Client struct {

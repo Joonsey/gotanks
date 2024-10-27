@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -134,7 +133,7 @@ func (t *Tank) Update(g *Game) {
 	}
 
 	if g.nm.client.isConnected() {
-		if int(g.time*100)%16 == 0 {
+		if int(g.time*100)%UPDATE_INTERVAL == 0 {
 			go g.nm.client.Send(PacketTypeUpdateCurrentPlayer, t.TankMinimal)
 		}
 	}

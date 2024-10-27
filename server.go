@@ -125,7 +125,7 @@ func (s *Server) UpdateServerLogic() {
 		log.Panic(err)
 	}
 
-	if s.update_count%16 == 0 {
+	if s.update_count%UPDATE_INTERVAL == 0 {
 		packet := Packet{PacketType: PacketTypeUpdatePlayers}
 
 		players := []PlayerUpdate{}
