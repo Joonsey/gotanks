@@ -45,7 +45,8 @@ type Game struct {
 
 	draw_data []DrawData
 	tracks    []Track
-	tanks     []TankMinimal
+
+	player_updates []PlayerUpdate
 }
 
 func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
@@ -141,6 +142,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.tank.GetDrawData(screen, g, g.camera)
 	g.gm.GetDrawData(g)
 	g.bm.GetDrawData(g)
+	if g.nm.client.isConnected() {
+		g.nm.GetDrawData(g)
+	}
 
 	for _, track := range g.tracks {
 		x, y := g.camera.GetRelativePosition(track.X, track.Y)
@@ -195,8 +199,11 @@ func main() {
 		},
 	}
 
-	tank.turret.rotation = &tank.Turret_rotation
 	game := &Game{tank: tank}
+	// this needs to be after game is constructed
+	// go does something funny when we ask for a pointer to Game
+	// and actually gives Game a copy of tank, not the same tank instance
+	game.tank.turret.rotation = &game.tank.Turret_rotation
 
 	game.am = &AssetManager{}
 	game.am.Init("temp.json")

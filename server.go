@@ -15,6 +15,11 @@ type ConnectedPlayer struct {
 	addr *net.UDPAddr
 }
 
+type PlayerUpdate struct {
+	Tank TankMinimal
+	ID   string
+}
+
 type ConnectedPlayers struct {
 	sync.RWMutex
 	m map[string]ConnectedPlayer
@@ -23,6 +28,7 @@ type ConnectedPlayers struct {
 type Server struct {
 	conn                    *net.UDPConn
 	accepts_new_connections bool
+	update_count            int
 
 	packet_channel    chan PacketData
 	connected_players ConnectedPlayers
@@ -116,6 +122,19 @@ func (s *Server) UpdateServerLogic() {
 		log.Panic(err)
 	}
 
+	if s.update_count%16 == 0 {
+		packet := Packet{PacketType: PacketTypeUpdatePlayers}
+
+		players := []PlayerUpdate{}
+		s.connected_players.RLock()
+		for key, value := range s.connected_players.m {
+			players = append(players, PlayerUpdate{Tank: value.tank, ID: key})
+		}
+		s.connected_players.RUnlock()
+		s.Broadcast(packet, players)
+	}
+
+	s.update_count++
 	defer time.Sleep(duration)
 }
 

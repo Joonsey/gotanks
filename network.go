@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"strings"
 )
 
 const (
@@ -23,8 +24,6 @@ type Client struct {
 
 type NetworkManager struct {
 	client *Client
-
-	tanks []TankMinimal
 }
 
 func (c *Client) isConnected() bool {
@@ -94,6 +93,34 @@ func (c *Client) Loop(game *Game) {
 	}
 }
 
+func (nm *NetworkManager) GetDrawData(g *Game) {
+	if !g.nm.client.isConnected() {
+		log.Panic("tried to get draw data without being connected")
+		return
+	}
+
+	our_port := strings.Split(nm.client.conn.LocalAddr().String(), "[::]:")[1]
+	for _, player := range g.player_updates {
+		// this is weak as hell
+		// TODO something better in the future
+		player_port := strings.Split(player.ID, ":")[1]
+		if our_port == player_port {
+			continue
+		}
+
+		t := player.Tank
+
+		x, y := g.camera.GetRelativePosition(t.X, t.Y)
+		g.draw_data = append(g.draw_data,
+			DrawData{g.tank.sprites, Position{x, y}, t.Rotation - g.camera.rotation, 1, Position{}, 1})
+		g.draw_data = append(g.draw_data,
+			DrawData{g.tank.turret.sprites, Position{x, y + 1}, t.Turret_rotation, 1, Position{0, -TURRET_HEIGHT}, 1})
+		if int(g.time*100)%TRACK_INTERVAL == 0 {
+			g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
+		}
+	}
+}
+
 func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 	dec := gob.NewDecoder(bytes.NewReader(packet_data.Data))
 	switch packet_data.Packet.PacketType {
@@ -105,5 +132,10 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		}
 
 		game.bm.AddBullet(bullet)
+	case PacketTypeUpdatePlayers:
+		err := dec.Decode(&game.player_updates)
+		if err != nil {
+			log.Panic("error decoding player updates", err)
+		}
 	}
 }

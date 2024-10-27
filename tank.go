@@ -94,7 +94,7 @@ func (t *Tank) Update(g *Game) {
 
 	rel_x, rel_y := g.camera.GetRelativePosition(t.X, t.Y)
 	rel_rotation := -math.Atan2(rel_x-float64(x), rel_y-float64(y))
-	*t.turret.rotation = rel_rotation
+	t.Turret_rotation = rel_rotation
 	bullet_pos := t.Position
 
 	// offsetting bullet position
