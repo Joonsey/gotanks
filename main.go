@@ -199,7 +199,7 @@ func main() {
 		TankMinimal:   TankMinimal{Position: Position{}, Life: 10},
 		sprites:       SplitSprites(img),
 		track_sprites: []*ebiten.Image{track_img},
-		dead_sprites: SplitSprites(dead_tank_img),
+		dead_sprites:  SplitSprites(dead_tank_img),
 		turret: Turret{
 			sprites: SplitSprites(turret_img),
 		},

@@ -36,7 +36,7 @@ type TankMinimal struct {
 	Position
 	Rotation        float64
 	Turret_rotation float64
-	Life			int
+	Life            int
 }
 
 type Tank struct {
@@ -140,7 +140,7 @@ func (t *Tank) Update(g *Game) {
 }
 
 func (t *Tank) Hit(hit BulletHit) {
-	if t.Alive(){
+	if t.Alive() {
 		t.Kill()
 	}
 }
