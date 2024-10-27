@@ -25,6 +25,8 @@ type Bullet struct {
 	Bullet_type BulletTypeEnum
 
 	grace_period int
+	num_bounces  int
+	velocity     float64
 }
 
 type BulletHit struct {
@@ -81,6 +83,8 @@ func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) 
 
 func (bm *BulletManager) AddBullet(bullet Bullet) {
 	bullet.grace_period = bm.DetermineGracePeriod(bullet.Bullet_type)
+	bullet.num_bounces = bm.DetermineNumBounces(bullet.Bullet_type)
+	bullet.velocity = bm.DetermineVelocity(bullet.Bullet_type)
 	bm.bullets = append(bm.bullets, bullet)
 }
 
@@ -93,13 +97,51 @@ func (bm *BulletManager) DetermineGracePeriod(bullet_type BulletTypeEnum) int {
 	}
 }
 
-func (b *Bullet) Update(velocity float64) {
-	x, y := math.Sin(b.Rotation), math.Cos(b.Rotation)
+func (bm *BulletManager) DetermineNumBounces(bullet_type BulletTypeEnum) int {
+	switch bullet_type {
+	case BulletTypeFast:
+		return 1
+	default:
+		return 2
+	}
+}
 
-	b.X += x * velocity
-	b.Y += y * velocity
+func (bm *BulletManager) DetermineVelocity(bullet_type BulletTypeEnum) float64 {
+	switch bullet_type {
+	case BulletTypeFast:
+		return 3
+	default:
+		return 1.3
+	}
+}
+
+func (b *Bullet) Update(level *Level) *Bullet {
+	x, y := math.Sin(b.Rotation)*b.velocity, math.Cos(b.Rotation)*b.velocity
+
+	b.Position.Y += y
+	collided_object := level.CheckObjectCollisionWithDimensions(b.Position, Position{4, 4})
+	if collided_object != nil {
+		b.Rotation = math.Pi - b.Rotation
+		if b.num_bounces == 0 {
+			return nil
+		}
+		b.num_bounces--
+		b.Position.Y -= y
+	}
+
+	b.Position.X += x
+	collided_object = level.CheckObjectCollisionWithDimensions(b.Position, Position{4, 4})
+	if collided_object != nil {
+		b.Rotation = -b.Rotation
+		if b.num_bounces == 0 {
+			return nil
+		}
+		b.num_bounces--
+		b.Position.X -= x
+	}
 
 	b.grace_period = max(b.grace_period-1, 0)
+	return b
 }
 
 func (bm *BulletManager) GetDrawData(g *Game) {
@@ -118,14 +160,14 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 }
 
 func (bm *BulletManager) Update(level *Level) {
-	for i, bullet := range bm.bullets {
-		bullet.Position.X += 4
-		bullet.Position.Y += 4
-		collided_object := level.CheckObjectCollisionWithDimensions(bullet.Position, Position{4, 4})
-		if collided_object == nil {
-			bm.bullets[i].Update(.5)
+	bullets := []Bullet{}
+	for _, bullet := range bm.bullets {
+		bullet := bullet.Update(level)
+		if bullet != nil {
+			bullets = append(bullets, *bullet)
 		}
 	}
+	bm.bullets = bullets
 }
 
 func (bm *BulletManager) IsColliding(position, dimension Position) *Bullet {
