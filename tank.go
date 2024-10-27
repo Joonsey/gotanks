@@ -28,7 +28,7 @@ type Track struct {
 }
 
 // this is suposed to be an interface for network transfer
-// we extend it for use 'real' use
+// we extend it for 'real' use
 type TankMinimal struct {
 	Position
 	Rotation        float64
