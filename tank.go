@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -116,4 +117,8 @@ func (t *Tank) Update(g *Game) {
 			go g.nm.client.Send(PacketTypeUpdateCurrentPlayer, t.TankMinimal)
 		}
 	}
+}
+
+func (t *Tank) Hit(hit BulletHit) {
+	log.Println("got hit!")
 }

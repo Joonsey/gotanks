@@ -45,6 +45,15 @@ func InitNetworkManager() *NetworkManager {
 	return &nm
 }
 
+func (c *Client) isSelf(id string) bool {
+	// this is weak as hell
+	// TODO something better in the future
+
+	our_port := strings.Split(c.conn.LocalAddr().String(), "[::]:")[1]
+	player_port := strings.Split(id, ":")[1]
+	return our_port == player_port
+}
+
 func (c *Client) Send(packet_type PacketType, data interface{}) error {
 	if !c.isConnected() {
 		return errors.New("tried to send without being connected")
@@ -99,12 +108,8 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 		return
 	}
 
-	our_port := strings.Split(nm.client.conn.LocalAddr().String(), "[::]:")[1]
 	for _, player := range g.player_updates {
-		// this is weak as hell
-		// TODO something better in the future
-		player_port := strings.Split(player.ID, ":")[1]
-		if our_port == player_port {
+		if nm.client.isSelf(player.ID) {
 			continue
 		}
 
@@ -137,5 +142,15 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		if err != nil {
 			log.Panic("error decoding player updates", err)
 		}
+	case PacketTypePlayerHit:
+		hit := BulletHit{}
+		err := dec.Decode(&hit)
+		if err != nil {
+			log.Panic("error decoding bullet", err)
+		}
+		if c.isSelf(hit.Player) {
+			game.tank.Hit(hit)
+		}
+		// add to event queue
 	}
 }

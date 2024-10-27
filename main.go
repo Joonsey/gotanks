@@ -121,7 +121,7 @@ func (g *Game) Update() error {
 	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
 	g.gm.Update(g)
-	g.bm.Update(g)
+	g.bm.Update(&g.level)
 	g.time += 0.01
 
 	tracks := []Track{}

@@ -14,10 +14,21 @@ const (
 	BulletTypeFast
 )
 
+const (
+	BULLET_WIDTH  = 8
+	BULLET_HEIGHT = 8
+)
+
 type Bullet struct {
 	Position
 	Rotation    float64
 	Bullet_type BulletTypeEnum
+
+	grace_period int
+}
+
+type BulletHit struct {
+	Player string
 }
 
 type BulletManager struct {
@@ -69,7 +80,17 @@ func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) 
 }
 
 func (bm *BulletManager) AddBullet(bullet Bullet) {
+	bullet.grace_period = bm.DetermineGracePeriod(bullet.Bullet_type)
 	bm.bullets = append(bm.bullets, bullet)
+}
+
+func (bm *BulletManager) DetermineGracePeriod(bullet_type BulletTypeEnum) int {
+	switch bullet_type {
+	case BulletTypeFast:
+		return 15
+	default:
+		return 30
+	}
 }
 
 func (b *Bullet) Update(velocity float64) {
@@ -77,6 +98,8 @@ func (b *Bullet) Update(velocity float64) {
 
 	b.X += x * velocity
 	b.Y += y * velocity
+
+	b.grace_period = max(b.grace_period-1, 0)
 }
 
 func (bm *BulletManager) GetDrawData(g *Game) {
@@ -94,13 +117,30 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 	}
 }
 
-func (bm *BulletManager) Update(g *Game) {
+func (bm *BulletManager) Update(level *Level) {
 	for i, bullet := range bm.bullets {
 		bullet.Position.X += 4
 		bullet.Position.Y += 4
-		collided_object := g.level.CheckObjectCollisionWithDimensions(bullet.Position, Position{4, 4})
+		collided_object := level.CheckObjectCollisionWithDimensions(bullet.Position, Position{4, 4})
 		if collided_object == nil {
 			bm.bullets[i].Update(.5)
 		}
 	}
+}
+
+func (bm *BulletManager) IsColliding(position, dimension Position) *Bullet {
+	for i, bullet := range bm.bullets {
+		if bullet.grace_period > 0 {
+			continue
+		}
+
+		if bullet.X < position.X+dimension.X &&
+			bullet.X+BULLET_WIDTH > position.X &&
+			bullet.Y < position.Y+dimension.Y &&
+			bullet.Y+BULLET_HEIGHT > position.Y {
+			return &bm.bullets[i]
+		}
+	}
+
+	return nil
 }

@@ -33,7 +33,8 @@ type Server struct {
 	packet_channel    chan PacketData
 	connected_players ConnectedPlayers
 
-	bm BulletManager
+	bm    BulletManager
+	level Level
 }
 
 func StartServer() {
@@ -50,6 +51,7 @@ func StartServer() {
 	server.connected_players.m = make(map[string]ConnectedPlayer)
 
 	server.accepts_new_connections = true
+	server.level = loadLevel("assets/tiled/level_1.tmx", nil, nil)
 
 	go server.Listen()
 	go server.StartHandlingPackets()
@@ -118,6 +120,7 @@ func (s *Server) HandlePacket(packet_data PacketData) {
 
 func (s *Server) UpdateServerLogic() {
 	duration, err := time.ParseDuration("16ms")
+	defer time.Sleep(duration)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -134,8 +137,17 @@ func (s *Server) UpdateServerLogic() {
 		s.Broadcast(packet, players)
 	}
 
+	s.bm.Update(&s.level)
+
+	for key, value := range s.connected_players.m {
+		bullet_hit := s.bm.IsColliding(value.tank.Position, Position{16, 16})
+		if bullet_hit != nil {
+			packet := Packet{PacketType: PacketTypePlayerHit}
+			data := BulletHit{Player: key}
+			s.Broadcast(packet, data)
+		}
+	}
 	s.update_count++
-	defer time.Sleep(duration)
 }
 
 func (s *Server) StartServerLogic() {
