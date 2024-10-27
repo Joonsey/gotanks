@@ -195,7 +195,7 @@ func main() {
 		},
 	}
 
-	tank.turret.rotation = &tank.turret_rotation
+	tank.turret.rotation = &tank.Turret_rotation
 	game := &Game{tank: tank}
 
 	game.am = &AssetManager{}

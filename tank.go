@@ -30,8 +30,8 @@ type Track struct {
 // we extend it for use 'real' use
 type TankMinimal struct {
 	Position
-	rotation        float64
-	turret_rotation float64
+	Rotation        float64
+	Turret_rotation float64
 }
 
 type Tank struct {
@@ -45,10 +45,10 @@ type Tank struct {
 func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
 
-	g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.rotation - camera.rotation, 1, Position{}, 1})
+	g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.Rotation - camera.rotation, 1, Position{}, 1})
 	g.draw_data = append(g.draw_data, DrawData{t.turret.sprites, Position{x, y + 1}, *t.turret.rotation, 1, Position{0, -TURRET_HEIGHT}, 1})
 	if int(g.time*100)%TRACK_INTERVAL == 0 {
-		g.tracks = append(g.tracks, Track{t.Position, t.rotation, TRACK_LIFETIME})
+		g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 	}
 }
 
@@ -59,8 +59,8 @@ func (t *Tank) DrawTurret(screen *ebiten.Image, camera Camera) {
 
 func (t *Tank) TryMove(g *Game, speed float64) {
 	initial_position := t.Position
-	x := math.Cos(t.rotation)
-	y := math.Sin(t.rotation)
+	x := math.Cos(t.Rotation)
+	y := math.Sin(t.Rotation)
 
 	t.X += x * speed
 	t.Y += y * speed
@@ -81,11 +81,11 @@ func (t *Tank) Update(g *Game) {
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
-		t.rotation -= ROTATION_SPEED
+		t.Rotation -= ROTATION_SPEED
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyD) {
-		t.rotation += ROTATION_SPEED
+		t.Rotation += ROTATION_SPEED
 	}
 
 	g.gm.ApplyForce(t.X, t.Y)
