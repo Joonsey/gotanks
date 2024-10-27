@@ -16,8 +16,8 @@ const (
 
 type Bullet struct {
 	Position
-	rotation    float64
-	bullet_type BulletTypeEnum
+	Rotation    float64
+	Bullet_type BulletTypeEnum
 }
 
 type BulletManager struct {
@@ -73,7 +73,7 @@ func (bm *BulletManager) AddBullet(bullet Bullet) {
 }
 
 func (b *Bullet) Update(velocity float64) {
-	x, y := math.Sin(b.rotation), math.Cos(b.rotation)
+	x, y := math.Sin(b.Rotation), math.Cos(b.Rotation)
 
 	b.X += x * velocity
 	b.Y += y * velocity
@@ -84,9 +84,9 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 		x, y := g.camera.GetRelativePosition(bullet.X, bullet.Y)
 		g.draw_data = append(g.draw_data,
 			DrawData{
-				bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.bullet_type),
+				bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
 				Position{x, y},
-				-bullet.rotation - g.camera.rotation + math.Pi,
+				-bullet.Rotation - g.camera.rotation + math.Pi,
 				1,
 				Position{0, -TURRET_HEIGHT * 2},
 				1,

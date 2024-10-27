@@ -105,8 +105,8 @@ func (t *Tank) Update(g *Game) {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
 		bullet := Bullet{}
 		bullet.Position = bullet_pos
-		bullet.rotation = -rel_rotation + -g.camera.rotation + math.Pi
-		bullet.bullet_type = BulletTypeStandard
+		bullet.Rotation = -rel_rotation + -g.camera.rotation + math.Pi
+		bullet.Bullet_type = BulletTypeStandard
 
 		g.bm.Shoot(bullet)
 	}
