@@ -14,6 +14,10 @@ const (
 	TRACK_LIFETIME = 64
 	TRACK_INTERVAL = 8
 	TURRET_HEIGHT  = 4
+
+	// we need this because GOB fails to decode values which are '0'
+	// so we need to do some tech to fix it
+	TANK_DEAD_VALUE = -1
 )
 
 type Turret struct {
@@ -33,6 +37,7 @@ type TankMinimal struct {
 	Position
 	Rotation        float64
 	Turret_rotation float64
+	Life			int
 }
 
 type Tank struct {
@@ -41,15 +46,29 @@ type Tank struct {
 	turret  Turret
 
 	track_sprites []*ebiten.Image
+	dead_sprites  []*ebiten.Image
+}
+
+func (t *TankMinimal) Alive() bool {
+	return t.Life != -1
+}
+
+func (t *TankMinimal) Kill() {
+	t.Life = -1
 }
 
 func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
 
-	g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.Rotation - camera.rotation, 1, Position{}, 1})
-	g.draw_data = append(g.draw_data, DrawData{t.turret.sprites, Position{x, y + 1}, *t.turret.rotation, 1, Position{0, -TURRET_HEIGHT}, 1})
-	if int(g.time*100)%TRACK_INTERVAL == 0 {
-		g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
+	if t.Alive() {
+		g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.Rotation - camera.rotation, 1, Position{}, 1})
+		g.draw_data = append(g.draw_data, DrawData{t.turret.sprites, Position{x, y + 1}, *t.turret.rotation, 1, Position{0, -TURRET_HEIGHT}, 1})
+		if int(g.time*100)%TRACK_INTERVAL == 0 {
+			g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
+		}
+
+	} else {
+		g.draw_data = append(g.draw_data, DrawData{t.dead_sprites, Position{x, y}, t.Rotation - camera.rotation, 1, Position{}, 1})
 	}
 }
 
@@ -73,20 +92,22 @@ func (t *Tank) TryMove(g *Game, speed float64) {
 }
 
 func (t *Tank) Update(g *Game) {
-	if ebiten.IsKeyPressed(ebiten.KeyW) {
-		t.TryMove(g, SPEED)
-	}
+	if t.Alive() {
+		if ebiten.IsKeyPressed(ebiten.KeyW) {
+			t.TryMove(g, SPEED)
+		}
 
-	if ebiten.IsKeyPressed(ebiten.KeyS) {
-		t.TryMove(g, -SPEED)
-	}
+		if ebiten.IsKeyPressed(ebiten.KeyS) {
+			t.TryMove(g, -SPEED)
+		}
 
-	if ebiten.IsKeyPressed(ebiten.KeyA) {
-		t.Rotation -= ROTATION_SPEED
-	}
+		if ebiten.IsKeyPressed(ebiten.KeyA) {
+			t.Rotation -= ROTATION_SPEED
+		}
 
-	if ebiten.IsKeyPressed(ebiten.KeyD) {
-		t.Rotation += ROTATION_SPEED
+		if ebiten.IsKeyPressed(ebiten.KeyD) {
+			t.Rotation += ROTATION_SPEED
+		}
 	}
 
 	g.gm.ApplyForce(t.X, t.Y)
@@ -103,7 +124,7 @@ func (t *Tank) Update(g *Game) {
 	// not the base
 	bullet_pos.Y += TURRET_HEIGHT
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) && t.Alive() {
 		bullet := Bullet{}
 		bullet.Position = bullet_pos
 		bullet.Rotation = -rel_rotation + -g.camera.rotation + math.Pi
@@ -120,5 +141,7 @@ func (t *Tank) Update(g *Game) {
 }
 
 func (t *Tank) Hit(hit BulletHit) {
-	log.Println("got hit!")
+	if t.Alive(){
+		t.Kill()
+	}
 }

@@ -116,12 +116,18 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 		t := player.Tank
 
 		x, y := g.camera.GetRelativePosition(t.X, t.Y)
-		g.draw_data = append(g.draw_data,
-			DrawData{g.tank.sprites, Position{x, y}, t.Rotation - g.camera.rotation, 1, Position{}, 1})
-		g.draw_data = append(g.draw_data,
-			DrawData{g.tank.turret.sprites, Position{x, y + 1}, t.Turret_rotation, 1, Position{0, -TURRET_HEIGHT}, 1})
-		if int(g.time*100)%TRACK_INTERVAL == 0 {
-			g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
+		if t.Alive() {
+			g.draw_data = append(g.draw_data,
+				DrawData{g.tank.sprites, Position{x, y}, t.Rotation - g.camera.rotation, 1, Position{}, 1})
+			g.draw_data = append(g.draw_data,
+				DrawData{g.tank.turret.sprites, Position{x, y + 1}, t.Turret_rotation, 1, Position{0, -TURRET_HEIGHT}, 1})
+			if int(g.time*100)%TRACK_INTERVAL == 0 {
+				g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
+			}
+		} else {
+			// TODO extrapolate dead sprites data
+			dead_sprites := g.tank.dead_sprites
+			g.draw_data = append(g.draw_data, DrawData{dead_sprites, Position{x, y}, t.Rotation - g.camera.rotation, 1, Position{}, 1})
 		}
 	}
 }

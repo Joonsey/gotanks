@@ -180,6 +180,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	dead_tank_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/stacks/tank-broken.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	turret_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/stacks/tank-barrel.png")
 	if err != nil {
 		log.Fatal(err)
@@ -191,9 +196,10 @@ func main() {
 	}
 
 	tank := Tank{
-		TankMinimal:   TankMinimal{Position: Position{}},
+		TankMinimal:   TankMinimal{Position: Position{}, Life: 10},
 		sprites:       SplitSprites(img),
 		track_sprites: []*ebiten.Image{track_img},
+		dead_sprites: SplitSprites(dead_tank_img),
 		turret: Turret{
 			sprites: SplitSprites(turret_img),
 		},

@@ -139,14 +139,22 @@ func (s *Server) UpdateServerLogic() {
 
 	s.bm.Update(&s.level)
 
+	s.connected_players.RLock()
 	for key, value := range s.connected_players.m {
+		if !value.tank.Alive() {
+			continue
+		}
+
 		bullet_hit := s.bm.IsColliding(value.tank.Position, Position{16, 16})
 		if bullet_hit != nil {
 			packet := Packet{PacketType: PacketTypePlayerHit}
 			data := BulletHit{Player: key}
+			s.connected_players.RUnlock()
 			s.Broadcast(packet, data)
+			s.connected_players.RLock()
 		}
 	}
+	s.connected_players.RUnlock()
 	s.update_count++
 }
 
@@ -154,6 +162,20 @@ func (s *Server) StartServerLogic() {
 	for {
 		s.UpdateServerLogic()
 	}
+}
+
+func (s *Server) NumPlayersAlive() (int, int) {
+	s.connected_players.Lock()
+	defer s.connected_players.Unlock()
+
+	c := 0
+	for _, value := range s.connected_players.m {
+		if value.tank.Alive() {
+			c++
+		}
+	}
+
+	return c, len(s.connected_players.m)
 }
 
 func (s *Server) AuthorizePacket(packet_data PacketData) error {
