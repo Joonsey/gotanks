@@ -24,6 +24,7 @@ type Client struct {
 
 	packet_channel chan PacketData
 	is_connected   bool
+	ID             string
 }
 
 type NetworkManager struct {
@@ -45,17 +46,16 @@ func InitNetworkManager() *NetworkManager {
 	nm.client.packet_channel = make(chan PacketData)
 	nm.client.conn = conn
 
+	// TODO do something better
+	nm.client.ID = strings.Split(nm.client.conn.LocalAddr().String(), "[::]:")[1]
+
 	nm.client.target = &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: SERVERPORT}
 	return &nm
 }
 
 func (c *Client) isSelf(id string) bool {
-	// this is weak as hell
-	// TODO something better in the future
-
-	our_port := strings.Split(c.conn.LocalAddr().String(), "[::]:")[1]
 	player_port := strings.Split(id, ":")[1]
-	return our_port == player_port
+	return c.ID == player_port
 }
 
 func (c *Client) Send(packet_type PacketType, data interface{}) error {
@@ -158,6 +158,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		if err != nil {
 			log.Panic("error decoding bullet", err)
 		}
+		delete(game.bm.bullets, hit.Bullet_ID)
 		if c.isSelf(hit.Player) {
 			game.tank.Hit(hit)
 		}

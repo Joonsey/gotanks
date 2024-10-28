@@ -52,6 +52,7 @@ func StartServer() {
 
 	server.accepts_new_connections = true
 	server.level = loadLevel("assets/tiled/level_1.tmx", nil, nil)
+	server.bm.bullets = make(map[string]*Bullet)
 
 	go server.Listen()
 	go server.StartHandlingPackets()
@@ -148,10 +149,12 @@ func (s *Server) UpdateServerLogic() {
 		bullet_hit := s.bm.IsColliding(value.tank.Position, Position{16, 16})
 		if bullet_hit != nil {
 			packet := Packet{PacketType: PacketTypePlayerHit}
-			data := BulletHit{Player: key}
+			data := BulletHit{Player: key, Bullet_ID: bullet_hit.ID}
 			s.connected_players.RUnlock()
 			s.Broadcast(packet, data)
 			s.connected_players.RLock()
+
+			delete(s.bm.bullets, bullet_hit.ID)
 		}
 	}
 	s.connected_players.RUnlock()

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math"
 
@@ -21,6 +22,7 @@ const (
 
 type Bullet struct {
 	Position
+	ID          string
 	Rotation    float64
 	Bullet_type BulletTypeEnum
 
@@ -30,18 +32,31 @@ type Bullet struct {
 }
 
 type BulletHit struct {
-	Player string
+	Player    string
+	Bullet_ID string
 }
 
 type BulletManager struct {
-	bullets []Bullet
+	bullets map[string]*Bullet
 
 	network_manager *NetworkManager
 	asset_manager   *AssetManager
 	index           uint
 }
 
+func (bm *BulletManager) NewBulletId() string {
+	bm.index++
+	if bm.network_manager == nil ||
+		bm.network_manager.client == nil ||
+		!bm.network_manager.client.isConnected() {
+		return fmt.Sprintf("0:%d", bm.index)
+	}
+
+	return fmt.Sprintf("%s:%d", bm.network_manager.client.ID, bm.index)
+}
+
 func (bm *BulletManager) Shoot(bullet Bullet) {
+	bullet.ID = bm.NewBulletId()
 	if bm.network_manager == nil ||
 		bm.network_manager.client == nil ||
 		!bm.network_manager.client.isConnected() {
@@ -49,7 +64,6 @@ func (bm *BulletManager) Shoot(bullet Bullet) {
 		bm.AddBullet(bullet)
 		return
 	}
-
 	err := bm.network_manager.client.Send(PacketTypeBulletShoot, bullet)
 	if err != nil {
 		log.Panic(err)
@@ -66,6 +80,7 @@ func InitBulletManager(nm *NetworkManager, am *AssetManager) *BulletManager {
 	bm.network_manager = nm
 
 	bm.asset_manager = am
+	bm.bullets = make(map[string]*Bullet)
 
 	return &bm
 }
@@ -85,7 +100,8 @@ func (bm *BulletManager) AddBullet(bullet Bullet) {
 	bullet.grace_period = bm.DetermineGracePeriod(bullet.Bullet_type)
 	bullet.num_bounces = bm.DetermineNumBounces(bullet.Bullet_type)
 	bullet.velocity = bm.DetermineVelocity(bullet.Bullet_type)
-	bm.bullets = append(bm.bullets, bullet)
+
+	bm.bullets[bullet.ID] = &bullet
 }
 
 func (bm *BulletManager) DetermineGracePeriod(bullet_type BulletTypeEnum) int {
@@ -160,18 +176,16 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 }
 
 func (bm *BulletManager) Update(level *Level) {
-	bullets := []Bullet{}
-	for _, bullet := range bm.bullets {
+	for key, bullet := range bm.bullets {
 		bullet := bullet.Update(level)
-		if bullet != nil {
-			bullets = append(bullets, *bullet)
+		if bullet == nil {
+			delete(bm.bullets, key)
 		}
 	}
-	bm.bullets = bullets
 }
 
 func (bm *BulletManager) IsColliding(position, dimension Position) *Bullet {
-	for i, bullet := range bm.bullets {
+	for _, bullet := range bm.bullets {
 		if bullet.grace_period > 0 {
 			continue
 		}
@@ -180,7 +194,7 @@ func (bm *BulletManager) IsColliding(position, dimension Position) *Bullet {
 			bullet.X+BULLET_WIDTH > position.X &&
 			bullet.Y < position.Y+dimension.Y &&
 			bullet.Y+BULLET_HEIGHT > position.Y {
-			return &bm.bullets[i]
+			return bullet
 		}
 	}
 
