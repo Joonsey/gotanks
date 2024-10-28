@@ -220,6 +220,8 @@ func (s *Server) CheckPlayerState() {
 			spawns := s.GetSpawnMap()
 			s.Broadcast(packet, spawns)
 			s.state = GameStateWaiting
+
+			s.bm.Reset()
 		}
 	case GameStateWaiting:
 		if total > 0 {

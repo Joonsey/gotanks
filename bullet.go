@@ -70,6 +70,12 @@ func (bm *BulletManager) Shoot(bullet Bullet) {
 	}
 }
 
+func (bm *BulletManager) Reset() {
+	for k := range bm.bullets {
+		delete(bm.bullets, k)
+	}
+}
+
 func InitBulletManager(nm *NetworkManager, am *AssetManager) *BulletManager {
 	if nm == nil || am == nil {
 		// this could be solved by not passing pointers

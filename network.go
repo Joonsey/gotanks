@@ -176,5 +176,6 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		}
 
 		game.tank.Respawn(spawn)
+		game.bm.Reset()
 	}
 }
