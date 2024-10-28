@@ -30,8 +30,14 @@ type Track struct {
 	lifetime int
 }
 
-// this is suposed to be an interface for network transfer
-// we extend it for 'real' use
+// NOTE it's going to be annoing with gob not writing
+// 'nil' values i.e (0, 0.0, and worst of all 'false')
+
+// perhaps look for some way to deal with this in the future.
+// but for now we just try to avoid values being 0
+
+// a minimal struct for representing a tank.
+// this is used for sending over the network
 type TankMinimal struct {
 	Position
 	Rotation        float64
@@ -141,7 +147,9 @@ func (t *Tank) Update(g *Game) {
 
 func (t *Tank) Respawn(spawn Position) {
 	t.Position = spawn
-	t.Rotation = 0
+
+	// it can not be 0 as gob will fail if it's 0
+	t.Rotation = 0.001
 	t.Life = 10
 }
 

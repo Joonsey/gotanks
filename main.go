@@ -196,7 +196,7 @@ func main() {
 	}
 
 	tank := Tank{
-		TankMinimal:   TankMinimal{Position: Position{}, Life: 10},
+		TankMinimal:   TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
 		sprites:       SplitSprites(img),
 		track_sprites: []*ebiten.Image{track_img},
 		dead_sprites:  SplitSprites(dead_tank_img),
