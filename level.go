@@ -29,11 +29,21 @@ func (l *Level) GetCollisions(object_group *tiled.ObjectGroup) {
 	}
 }
 
-func (l *Level) GetSpawns(object_group *tiled.ObjectGroup) {
+func (l *Level) getSpawns(object_group *tiled.ObjectGroup) {
 	for _, object := range object_group.Objects {
 		l.spawns = append(l.spawns, *object)
 	}
 }
+
+func (l *Level) GetSpawnPositions() []Position {
+	spawns := []Position{}
+	for _, value := range l.spawns {
+		spawns = append(spawns, Position{value.X, value.Y})
+	}
+
+	return spawns
+}
+
 func (l *Level) CheckObjectCollisionWithDimensions(position Position, dimension Position) *tiled.Object {
 	for _, object := range l.collisions {
 		if object.X < position.X+dimension.X &&
@@ -109,7 +119,7 @@ func loadLevel(map_path string, am *AssetManager, gm *GrassManager) Level {
 		case "collisions":
 			level.GetCollisions(object_group)
 		case "spawn":
-			level.GetSpawns(object_group)
+			level.getSpawns(object_group)
 		case "grass":
 			if gm != nil {
 				level.MakeGrass(object_group, gm)

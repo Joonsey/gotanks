@@ -51,6 +51,7 @@ const (
 	PacketTypePlayerRoll
 	PacketTypeModifiersUpdated
 	PacketTypeModifierChosen
+	PacketTypeNewLevel
 )
 
 func ValidatePacket(packet Packet) error {

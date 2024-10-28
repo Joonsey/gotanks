@@ -6,8 +6,17 @@ import (
 	"errors"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
+)
+
+type GameStateEnum int
+
+const (
+	GameStatePlaying GameStateEnum = iota
+	GameStateWaiting
+	GameStateStarting
 )
 
 type ConnectedPlayer struct {
@@ -35,6 +44,7 @@ type Server struct {
 
 	bm    BulletManager
 	level Level
+	state GameStateEnum
 }
 
 func StartServer() {
@@ -119,6 +129,24 @@ func (s *Server) HandlePacket(packet_data PacketData) {
 	}
 }
 
+func (s *Server) GetSpawnMap() map[string]Position {
+	s.connected_players.RLock()
+	defer s.connected_players.RUnlock()
+
+	spawn_map := make(map[string]Position)
+	spawns := s.level.GetSpawnPositions()
+
+	i := 0
+	for key := range s.connected_players.m {
+		// until revision of 'id'
+		player_port := strings.Split(key, ":")[1]
+		spawn_map[player_port] = spawns[i%len(spawns)]
+		i++
+	}
+
+	return spawn_map
+}
+
 func (s *Server) UpdateServerLogic() {
 	duration, err := time.ParseDuration("16ms")
 	defer time.Sleep(duration)
@@ -158,6 +186,8 @@ func (s *Server) UpdateServerLogic() {
 		}
 	}
 	s.connected_players.RUnlock()
+
+	s.CheckPlayerState()
 	s.update_count++
 }
 
@@ -167,7 +197,7 @@ func (s *Server) StartServerLogic() {
 	}
 }
 
-func (s *Server) NumPlayersAlive() (int, int) {
+func (s *Server) NumPlayersAlive() (alive, total int) {
 	s.connected_players.Lock()
 	defer s.connected_players.Unlock()
 
@@ -179,6 +209,24 @@ func (s *Server) NumPlayersAlive() (int, int) {
 	}
 
 	return c, len(s.connected_players.m)
+}
+
+func (s *Server) CheckPlayerState() {
+	alive, total := s.NumPlayersAlive()
+	switch s.state {
+	case GameStatePlaying:
+		if alive == 0 && total > 0 {
+			packet := Packet{PacketType: PacketTypeNewLevel}
+			spawns := s.GetSpawnMap()
+			s.Broadcast(packet, spawns)
+			s.state = GameStateWaiting
+		}
+	case GameStateWaiting:
+		if total > 0 {
+			s.state = GameStatePlaying
+		}
+	}
+
 }
 
 func (s *Server) AuthorizePacket(packet_data PacketData) error {

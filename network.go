@@ -163,5 +163,18 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			game.tank.Hit(hit)
 		}
 		// add to event queue
+	case PacketTypeNewLevel:
+		spawn_map := make(map[string]Position)
+		err := dec.Decode(&spawn_map)
+		if err != nil {
+			log.Panic("error decoding spawn map", err)
+		}
+
+		spawn, ok := spawn_map[c.ID]
+		if !ok {
+			log.Panic("could not find spawn in spawn map ", spawn_map)
+		}
+
+		game.tank.Respawn(spawn)
 	}
 }

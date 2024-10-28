@@ -139,6 +139,12 @@ func (t *Tank) Update(g *Game) {
 	}
 }
 
+func (t *Tank) Respawn(spawn Position) {
+	t.Position = spawn
+	t.Rotation = 0
+	t.Life = 10
+}
+
 func (t *Tank) Hit(hit BulletHit) {
 	if t.Alive() {
 		t.Kill()
