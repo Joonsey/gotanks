@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"image"
 	"io"
@@ -11,12 +12,16 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 type AssetManager struct {
 	stacked_map map[image.Rectangle][]*ebiten.Image
 
 	cached_sprites map[string][]*ebiten.Image
+
+	// TODO refactor
+	new_level_font *text.GoTextFaceSource
 }
 
 func (a *AssetManager) GetSprites(path string) []*ebiten.Image {
@@ -35,6 +40,21 @@ func (a *AssetManager) GetSprites(path string) []*ebiten.Image {
 	a.cached_sprites[path] = sprite_split
 
 	return sprite_split
+}
+
+func (a *AssetManager) LoadFont(path string) *text.GoTextFaceSource {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s, err := text.NewGoTextFaceSource(bytes.NewReader(b))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return s
+
 }
 
 func (a *AssetManager) Init(config_path string) {
@@ -84,4 +104,7 @@ func (a *AssetManager) Init(config_path string) {
 	}
 
 	log.Println("succesfully loaded all stacked sprites")
+
+	// TODO improve
+	a.new_level_font = a.LoadFont("assets/fonts/PressStart2P-Regular.ttf")
 }

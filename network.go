@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 const (
@@ -25,6 +26,7 @@ type Client struct {
 	packet_channel chan PacketData
 	is_connected   bool
 	ID             string
+	server_state   ServerGameStateEnum
 }
 
 type NetworkManager struct {
@@ -164,18 +166,27 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		}
 		// add to event queue
 	case PacketTypeNewLevel:
-		spawn_map := make(map[string]Position)
-		err := dec.Decode(&spawn_map)
+		event := NewLevelEvent{Spawns: map[string]Position{}}
+		err := dec.Decode(&event)
 		if err != nil {
 			log.Panic("error decoding spawn map", err)
 		}
 
-		spawn, ok := spawn_map[c.ID]
+		spawn, ok := event.Spawns[c.ID]
 		if !ok {
-			log.Panic("could not find spawn in spawn map ", spawn_map)
+			log.Panic("could not find spawn in spawn map ", event.Spawns)
 		}
 
-		game.tank.Respawn(spawn)
-		game.bm.Reset()
+		game.new_level_time = event.Timestamp
+		go func() {
+			time.Sleep(event.Timestamp.Sub(time.Now()))
+			game.tank.Respawn(spawn)
+			game.bm.Reset()
+		}()
+	case PacketTypeServerStateChanged:
+		err := dec.Decode(&c.server_state)
+		if err != nil {
+			log.Panic("error decoding new server state")
+		}
 	}
 }

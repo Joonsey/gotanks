@@ -11,12 +11,17 @@ import (
 	"time"
 )
 
-type GameStateEnum int
+type ServerGameStateEnum int
 
 const (
-	GameStatePlaying GameStateEnum = iota
-	GameStateWaiting
-	GameStateStarting
+	ServerGameStatePlaying ServerGameStateEnum = iota
+	ServerGameStateWaiting
+	ServerGameStateStartingNewRound
+)
+
+const (
+	NEW_LEVEL_INTERVAL_S  = 3
+	STATE_CHANGE_GRACE_MS = 500
 )
 
 type ConnectedPlayer struct {
@@ -34,6 +39,12 @@ type ConnectedPlayers struct {
 	m map[string]ConnectedPlayer
 }
 
+type NewLevelEvent struct {
+	Spawns    map[string]Position
+	Timestamp time.Time
+	Level     LevelEnum
+}
+
 type Server struct {
 	conn                    *net.UDPConn
 	accepts_new_connections bool
@@ -44,7 +55,9 @@ type Server struct {
 
 	bm    BulletManager
 	level Level
-	state GameStateEnum
+	state ServerGameStateEnum
+
+	wait_time time.Time
 }
 
 func StartServer() {
@@ -187,7 +200,13 @@ func (s *Server) UpdateServerLogic() {
 	}
 	s.connected_players.RUnlock()
 
-	s.CheckPlayerState()
+	prior_state := s.state
+	new_state := s.CheckPlayerState()
+	if prior_state != new_state {
+		packet := Packet{PacketType: PacketTypeServerStateChanged}
+		s.Broadcast(packet, new_state)
+	}
+
 	s.update_count++
 }
 
@@ -211,24 +230,38 @@ func (s *Server) NumPlayersAlive() (alive, total int) {
 	return c, len(s.connected_players.m)
 }
 
-func (s *Server) CheckPlayerState() {
+func (s *Server) DetermineNextLevel() LevelEnum {
+	return 1
+}
+
+func (s *Server) CheckPlayerState() ServerGameStateEnum {
 	alive, total := s.NumPlayersAlive()
 	switch s.state {
-	case GameStatePlaying:
-		if alive == 0 && total > 0 {
+	case ServerGameStatePlaying:
+		if time.Now().After(s.wait_time) && alive == 0 && total > 0 {
 			packet := Packet{PacketType: PacketTypeNewLevel}
 			spawns := s.GetSpawnMap()
-			s.Broadcast(packet, spawns)
-			s.state = GameStateWaiting
+			wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
+			event := NewLevelEvent{
+				Spawns:    spawns,
+				Timestamp: wait_time,
+				Level:     s.DetermineNextLevel(),
+			}
+
+			s.wait_time = wait_time
+			s.Broadcast(packet, event)
+			s.state = ServerGameStateStartingNewRound
 
 			s.bm.Reset()
 		}
-	case GameStateWaiting:
-		if total > 0 {
-			s.state = GameStatePlaying
+	case ServerGameStateStartingNewRound:
+		// adding an extra buffer to let people alive themselves
+		if time.Now().After(s.wait_time) && total > 0 {
+			s.state = ServerGameStatePlaying
+			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
 		}
 	}
-
+	return s.state
 }
 
 func (s *Server) AuthorizePacket(packet_data PacketData) error {

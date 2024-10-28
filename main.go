@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"log"
 	"math"
 	"sort"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 const (
@@ -33,6 +36,15 @@ type DrawData struct {
 	opacity   float32
 }
 
+// not to be confused with ServerGameStateEnum
+type GameStateEnum int
+
+const (
+	GameStatePlaying GameStateEnum = iota
+	GameStateWaiting
+	GameStateStarting
+)
+
 type Game struct {
 	tank   Tank
 	level  Level
@@ -47,6 +59,9 @@ type Game struct {
 	tracks    []Track
 
 	player_updates []PlayerUpdate
+
+	// TODO refactor
+	new_level_time time.Time
 }
 
 func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
@@ -101,6 +116,17 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 	return sprites
 }
 
+// TODO refactor
+func (g *Game) DrawNewLevelTimer(screen *ebiten.Image) {
+	textOp := text.DrawOptions{}
+	t := g.new_level_time.Sub(time.Now())
+	msg := fmt.Sprintf("New round in %.2f!", max(t.Seconds(), 0))
+	fontSize := 8.
+	textOp.GeoM.Translate(RENDER_WIDTH/2, RENDER_HEIGHT-fontSize*4)
+	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
+	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+}
+
 func (g *Game) GetTargetCameraPosition() Position {
 	// TODO should perhaps offset by relative mouse position to give the illusion of 'zoom' or 'focus'
 	targetX := float64(RENDER_WIDTH) / 2
@@ -144,6 +170,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.bm.GetDrawData(g)
 	if g.nm.client.isConnected() {
 		g.nm.GetDrawData(g)
+
+		if g.nm.client.server_state == ServerGameStateStartingNewRound {
+			defer g.DrawNewLevelTimer(screen)
+		}
+
 	}
 
 	for _, track := range g.tracks {
@@ -165,6 +196,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	g.draw_data = []DrawData{}
+
 }
 
 func (g *Game) Layout(screenWidth, screenHeight int) (renderWidth, renderHeight int) {

@@ -15,6 +15,8 @@ const (
 	LEVEL_CONST_STACKS = "stacks"
 )
 
+type LevelEnum int
+
 type Level struct {
 	tiled_map tiled.Map
 	am        *AssetManager
