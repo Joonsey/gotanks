@@ -52,6 +52,7 @@ type Game struct {
 	gm     *GrassManager
 	nm     *NetworkManager
 	bm     *BulletManager
+	pm     *ParticleManager
 	camera Camera
 	time   float64
 
@@ -147,7 +148,8 @@ func (g *Game) Update() error {
 	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
 	g.gm.Update(g)
-	g.bm.Update(&g.level)
+	g.bm.Update(&g.level, g)
+	g.pm.Update(g)
 	g.time += 0.01
 
 	tracks := []Track{}
@@ -168,6 +170,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.tank.GetDrawData(screen, g, g.camera)
 	g.gm.GetDrawData(g)
 	g.bm.GetDrawData(g)
+	g.pm.GetDrawData(g)
 	if g.nm.client.isConnected() {
 		g.nm.GetDrawData(g)
 
@@ -250,6 +253,7 @@ func main() {
 
 	game.nm = InitNetworkManager()
 	game.bm = InitBulletManager(game.nm, game.am)
+	game.pm = InitParticleManager()
 
 	game.gm = &GrassManager{}
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)

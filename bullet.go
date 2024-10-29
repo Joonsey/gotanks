@@ -137,7 +137,7 @@ func (bm *BulletManager) DetermineVelocity(bullet_type BulletTypeEnum) float64 {
 	}
 }
 
-func (b *Bullet) Update(level *Level) *Bullet {
+func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 	x, y := math.Sin(b.Rotation)*b.velocity, math.Cos(b.Rotation)*b.velocity
 
 	b.Position.Y += y
@@ -162,6 +162,9 @@ func (b *Bullet) Update(level *Level) *Bullet {
 		b.Position.X -= x
 	}
 
+	if game != nil {
+		game.gm.ApplyForce(b.X, b.Y)
+	}
 	b.grace_period = max(b.grace_period-1, 0)
 	return b
 }
@@ -181,9 +184,9 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 	}
 }
 
-func (bm *BulletManager) Update(level *Level) {
+func (bm *BulletManager) Update(level *Level, g *Game) {
 	for key, bullet := range bm.bullets {
-		bullet := bullet.Update(level)
+		bullet := bullet.Update(level, g)
 		if bullet == nil {
 			delete(bm.bullets, key)
 		}

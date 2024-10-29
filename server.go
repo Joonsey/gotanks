@@ -179,7 +179,7 @@ func (s *Server) UpdateServerLogic() {
 		s.Broadcast(packet, players)
 	}
 
-	s.bm.Update(&s.level)
+	s.bm.Update(&s.level, nil)
 
 	s.connected_players.RLock()
 	for key, value := range s.connected_players.m {

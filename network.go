@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"log"
+	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -134,6 +135,10 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 			// TODO extrapolate dead sprites data
 			dead_sprites := g.tank.dead_sprites
 			g.draw_data = append(g.draw_data, DrawData{dead_sprites, Position{x, y}, t.Rotation - g.camera.rotation, 1, Position{}, 1})
+
+			// not sure how i feel about this living in a draw call
+			t.TryAddSmoke(g)
+
 		}
 	}
 }
@@ -160,11 +165,28 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		if err != nil {
 			log.Panic("error decoding bullet", err)
 		}
-		delete(game.bm.bullets, hit.Bullet_ID)
 		if c.isSelf(hit.Player) {
 			game.tank.Hit(hit)
 		}
-		// add to event queue
+		particle_sprite := game.am.GetSprites("assets/sprites/stacks/particle-cube-template.png")
+		bullet := game.bm.bullets[hit.Bullet_ID]
+
+		seed := time.Now().Unix()
+		particle_count := float64(seed % 5)
+		for i := range int(particle_count) + 1 {
+			// TODO seed this so it can be reasonably consistent across clients
+			n := rand.Float64() + 1
+			game.pm.AddParticle(
+				Particle{Position: bullet.Position,
+					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
+					sprites:       particle_sprite,
+					velocity:      n * .4,
+					particle_type: ParticleTypeDebris,
+					max_t:         60 * n,
+				})
+		}
+
+		delete(game.bm.bullets, hit.Bullet_ID)
 	case PacketTypeNewLevel:
 		event := NewLevelEvent{Spawns: map[string]Position{}}
 		err := dec.Decode(&event)

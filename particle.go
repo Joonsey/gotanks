@@ -18,7 +18,7 @@ type Particle struct {
 	Position
 	Rotation float64
 	Offset_z float64
-	sprites   []*ebiten.Image
+	sprites  []*ebiten.Image
 	velocity float64
 
 	current_t float64
@@ -27,8 +27,8 @@ type Particle struct {
 	opacity   float64
 	offset    Position
 
-	seed      int64
-	variance  int
+	seed     int64
+	variance int
 
 	particle_type ParticleTypeEnum
 }
@@ -39,7 +39,7 @@ type ParticleManager struct {
 	particles []*Particle
 }
 
-func InitParticleManager() *ParticleManager{
+func InitParticleManager() *ParticleManager {
 	pm := ParticleManager{}
 	pm.particles = []*Particle{}
 
@@ -89,17 +89,17 @@ func (p *Particle) GetDrawShadowData(camera Camera) DrawData {
 		Position{x, y - 20},
 		p.Rotation - camera.rotation,
 		0.2,
-		Position{ 0, 20 },
+		Position{0, 20},
 		0.25,
 	}
 }
 
 func calculateY(current_t, max_t, y_end float64) float64 {
-    return (y_end / 2) * (1 + math.Sin((2*math.Pi*current_t/max_t) - (math.Pi / 2)))
+	return (y_end / 2) * (1 + math.Sin((2*math.Pi*current_t/max_t)-(math.Pi/2)))
 }
 
 func CalculateSmokeOffsetX(p Particle) float64 {
-	return float64(p.seed % int64(p.variance)) - (float64(p.variance) / 2) + (math.Sin(p.current_t / (p.max_t / 2)) * p.current_t) / 30
+	return float64(p.seed%int64(p.variance)) - (float64(p.variance) / 2) + (math.Sin(p.current_t/(p.max_t/2))*p.current_t)/30
 
 }
 
@@ -123,12 +123,12 @@ func (p *Particle) Update(level *Level) {
 		}
 
 		// TODO better math here
-		if p.current_t >= p.max_t / 2 {
-			p.Offset_z = calculateY(p.current_t, p.max_t / 2, 5)
+		if p.current_t >= p.max_t/2 {
+			p.Offset_z = calculateY(p.current_t, p.max_t/2, 5)
 		} else {
-			p.Offset_z = calculateY(p.current_t, p.max_t / 2, 20)
+			p.Offset_z = calculateY(p.current_t, p.max_t/2, 20)
 		}
-		p.intensity = 1 - p.current_t / p.max_t
+		p.intensity = 1 - p.current_t/p.max_t
 	case ParticleTypeSmoke:
 		p.Offset_z += p.velocity
 		p.offset.X = CalculateSmokeOffsetX(*p)
@@ -150,18 +150,18 @@ func (pm *ParticleManager) Update(g *Game) {
 	particles := []*Particle{}
 	for _, particle := range pm.particles {
 		if particle.particle_type == ParticleTypeDebris {
-			if int(particle.current_t*100) % 14 == 0{
+			if int(particle.current_t*100)%14 == 0 {
 				position := particle.Position
 				position.Y -= particle.Offset_z
 				pm.AddParticle(
 					Particle{
 						particle_type: ParticleTypeSmoke,
-						Position: position,
-						velocity: 0.1,
-						sprites: particle.sprites,
-						current_t: 30,
-						max_t: 80,
-						variance: 12,
+						Position:      position,
+						velocity:      0.1,
+						sprites:       particle.sprites,
+						current_t:     30,
+						max_t:         80,
+						variance:      12,
 					},
 				)
 			}

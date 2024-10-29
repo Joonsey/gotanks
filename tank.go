@@ -96,6 +96,18 @@ func (t *Tank) TryMove(g *Game, speed float64) {
 
 }
 
+func (t *TankMinimal) TryAddSmoke(g *Game) {
+	if int(g.time*100)%13 == 0 {
+		g.pm.AddParticle(
+			Particle{
+				particle_type: ParticleTypeSmoke,
+				Position:      t.Position,
+				velocity:      0.2,
+				sprites:       g.am.GetSprites("assets/sprites/stacks/particle-cube-template.png"),
+			})
+	}
+}
+
 func (t *Tank) Update(g *Game) {
 	if t.Alive() {
 		if ebiten.IsKeyPressed(ebiten.KeyW) {
@@ -113,6 +125,8 @@ func (t *Tank) Update(g *Game) {
 		if ebiten.IsKeyPressed(ebiten.KeyD) {
 			t.Rotation += ROTATION_SPEED
 		}
+	} else {
+		t.TryAddSmoke(g)
 	}
 
 	g.gm.ApplyForce(t.X, t.Y)
