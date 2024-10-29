@@ -13,6 +13,7 @@ const (
 	ParticleTypeDebrisFromTank ParticleTypeEnum = iota
 	ParticleTypeSmoke
 	ParticleTypeGunSmoke
+	ParticleTypeTest
 )
 
 type Particle struct {
@@ -130,7 +131,8 @@ func calculateSmokeOffsetX(p Particle) float64 {
 
 }
 
-func (p *Particle) Update(level *Level) {
+func (p *Particle) Update(game *Game) {
+	level := game.level
 	switch p.particle_type {
 	case ParticleTypeDebrisFromTank:
 		x, y := math.Sin(p.Rotation)*p.velocity, math.Cos(p.Rotation)*p.velocity
@@ -163,10 +165,14 @@ func (p *Particle) Update(level *Level) {
 		p.intensity = p.current_t / p.max_t
 	case ParticleTypeGunSmoke:
 		x, y := math.Sin(p.Rotation)*p.velocity, math.Cos(p.Rotation)*p.velocity
-		velocity := exponentialDecay(p.velocity, 5, p.current_t / p.max_t)
+		velocity := exponentialDecay(p.velocity, 5, p.current_t/p.max_t)
 		p.Position.X += velocity * x
 		p.Position.Y += velocity * y
+	case ParticleTypeTest:
+		p.Position = game.tank.Position
+		p.current_t--
 	}
+
 	p.current_t++
 }
 
@@ -213,7 +219,7 @@ func (pm *ParticleManager) Update(g *Game) {
 				)
 			}
 		}
-		particle.Update(&g.level)
+		particle.Update(g)
 		if particle.Offset_z <= 8 {
 			g.gm.ApplyForce(particle.X, particle.Y)
 		}

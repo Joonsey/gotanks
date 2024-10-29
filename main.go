@@ -287,6 +287,8 @@ func main() {
 	temp_spawn_obj := game.level.spawns[0]
 	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
 
+	//game.pm.AddParticle(Particle{particle_type: ParticleTypeTest})
+
 	go StartServer()
 
 	go game.nm.client.Listen()

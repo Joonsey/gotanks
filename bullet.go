@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -37,12 +38,13 @@ type BulletHit struct {
 }
 
 type BulletManager struct {
+	mutex   sync.RWMutex
 	bullets map[string]*Bullet
 
 	network_manager  *NetworkManager
 	asset_manager    *AssetManager
 	particle_manager *ParticleManager
-	index           uint
+	index            uint
 }
 
 func (bm *BulletManager) NewBulletId() string {
@@ -113,13 +115,16 @@ func (bm *BulletManager) AddBullet(bullet Bullet) {
 		bm.particle_manager.AddParticle(
 			Particle{
 				particle_type: ParticleTypeGunSmoke,
-				Rotation: bullet.Rotation,
-				Position: bullet.Position,
-				velocity: 2,
-				max_t: 20,
+				Rotation:      bullet.Rotation,
+				Position:      bullet.Position,
+				velocity:      2,
+				offset:        Position{0, -TURRET_HEIGHT * 2},
+				max_t:         20,
 			})
 	}
+	bm.mutex.Lock()
 	bm.bullets[bullet.ID] = &bullet
+	bm.mutex.Unlock()
 }
 
 func (bm *BulletManager) DetermineGracePeriod(bullet_type BulletTypeEnum) int {
@@ -182,6 +187,8 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 }
 
 func (bm *BulletManager) GetDrawData(g *Game) {
+	bm.mutex.RLock()
+	defer bm.mutex.RUnlock()
 	for _, bullet := range bm.bullets {
 		x, y := g.camera.GetRelativePosition(bullet.X, bullet.Y)
 		g.draw_data = append(g.draw_data,
@@ -197,6 +204,8 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 }
 
 func (bm *BulletManager) Update(level *Level, g *Game) {
+	bm.mutex.Lock()
+	defer bm.mutex.Unlock()
 	for key, bullet := range bm.bullets {
 		bullet := bullet.Update(level, g)
 		if bullet == nil {
@@ -206,6 +215,8 @@ func (bm *BulletManager) Update(level *Level, g *Game) {
 }
 
 func (bm *BulletManager) IsColliding(position, dimension Position) *Bullet {
+	bm.mutex.RLock()
+	defer bm.mutex.RUnlock()
 	for _, bullet := range bm.bullets {
 		if bullet.grace_period > 0 {
 			continue
