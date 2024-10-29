@@ -45,13 +45,10 @@ const (
 	PacketTypeUpdatePlayers
 	PacketTypeBulletShoot
 	PacketTypePlayerHit
-	PacketTypeServerEvent
 	PacketTypeClientToggleReady
 	PacketTypeServerStateChanged
-	PacketTypePlayerRoll
-	PacketTypeModifiersUpdated
-	PacketTypeModifierChosen
-	PacketTypeNewLevel
+	PacketTypeNewRound
+	PacketTypeNewMatch
 )
 
 func ValidatePacket(packet Packet) error {

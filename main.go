@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"log"
@@ -289,7 +290,11 @@ func main() {
 
 	//game.pm.AddParticle(Particle{particle_type: ParticleTypeTest})
 
-	go StartServer()
+	start_server := flag.Bool("server", false, "start server")
+	flag.Parse()
+	if *start_server {
+		go StartServer()
+	}
 
 	go game.nm.client.Listen()
 	go game.nm.client.Loop(game)

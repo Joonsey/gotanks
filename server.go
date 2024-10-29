@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -14,14 +15,19 @@ import (
 type ServerGameStateEnum int
 
 const (
-	ServerGameStatePlaying ServerGameStateEnum = iota
+	ServerGameStateStartingNewMatch ServerGameStateEnum = iota
+	ServerGameStatePlaying
 	ServerGameStateWaiting
 	ServerGameStateStartingNewRound
+	ServerGameStateGoingBackToLobby
 )
 
 const (
 	NEW_LEVEL_INTERVAL_S  = 3
 	STATE_CHANGE_GRACE_MS = 500
+
+	WIN_THRESHOLD = 3
+	DRAW_CONST    = "DRAW"
 )
 
 type ConnectedPlayer struct {
@@ -39,10 +45,24 @@ type ConnectedPlayers struct {
 	m map[string]ConnectedPlayer
 }
 
-type NewLevelEvent struct {
+type NewRoundEvent struct {
 	Spawns    map[string]Position
 	Timestamp time.Time
 	Level     LevelEnum
+	Winner    string
+}
+
+type NewMatchEvent struct {
+	Timestamp time.Time
+}
+
+type ServerStats struct {
+	Matches     []*Match
+	KillEvents  []*KillEvent
+	DeathEvents []*DeathEvent
+	Rounds      []*Round
+
+	winner string
 }
 
 type Server struct {
@@ -56,8 +76,13 @@ type Server struct {
 	bm    BulletManager
 	level Level
 	state ServerGameStateEnum
+	stats ServerStats
 
 	wait_time time.Time
+
+	// temporary until db
+	round_id int
+	match_id int
 }
 
 func StartServer() {
@@ -201,7 +226,7 @@ func (s *Server) UpdateServerLogic() {
 	s.connected_players.RUnlock()
 
 	prior_state := s.state
-	new_state := s.CheckPlayerState()
+	new_state := s.CheckServerState()
 	if prior_state != new_state {
 		packet := Packet{PacketType: PacketTypeServerStateChanged}
 		s.Broadcast(packet, new_state)
@@ -216,51 +241,163 @@ func (s *Server) StartServerLogic() {
 	}
 }
 
-func (s *Server) NumPlayersAlive() (alive, total int) {
+func (s *Server) GetAlivePlayers() (alive []ConnectedPlayer, total_count int) {
 	s.connected_players.Lock()
 	defer s.connected_players.Unlock()
 
-	c := 0
+	alive_player := []ConnectedPlayer{}
 	for _, value := range s.connected_players.m {
 		if value.tank.Alive() {
-			c++
+			alive_player = append(alive_player, value)
 		}
 	}
 
-	return c, len(s.connected_players.m)
+	return alive_player, len(s.connected_players.m)
 }
 
 func (s *Server) DetermineNextLevel() LevelEnum {
 	return 1
 }
 
-func (s *Server) CheckPlayerState() ServerGameStateEnum {
-	alive, total := s.NumPlayersAlive()
+func (s *Server) GetHighestWinCount() (top_player string, highest_wins int) {
+	match := s.GetCurrentMatch()
+
+	wins := make(map[string]int)
+	if match == nil {
+		for _, round := range s.stats.Rounds {
+			wins[round.Winner_ID]++
+		}
+	} else {
+		for _, round := range s.stats.Rounds {
+			if round.Match_ID == match.Match_ID {
+				wins[round.Winner_ID]++
+			}
+		}
+	}
+
+	for player_id, wins := range wins {
+		if wins > highest_wins {
+			top_player = player_id
+			highest_wins = wins
+		}
+	}
+
+	return top_player, highest_wins
+}
+
+func (s *Server) GetCurrentMatch() *Match {
+	if len(s.stats.Matches) == 0 {
+		return nil
+	}
+	return s.stats.Matches[len(s.stats.Matches)-1]
+}
+
+func (s *Server) StartNewMatch() *Match {
+	match := Match{}
+	match.Match_ID = fmt.Sprintf("%d", s.match_id)
+	s.match_id++
+
+	match.StartTime = time.Now()
+
+	return &match
+}
+
+func (s *Server) StartNewRound() *Round {
+	current_match := s.GetCurrentMatch()
+	if current_match == nil {
+		log.Panic("can not start a round before a match")
+	}
+	round := Round{}
+	round.Round_ID = fmt.Sprintf("%d", s.round_id)
+	s.round_id++
+	round.Match_ID = current_match.Match_ID
+	round.Level = s.DetermineNextLevel()
+
+	return &round
+}
+
+func (s *Server) CheckServerState() ServerGameStateEnum {
+	alive, total := s.GetAlivePlayers()
+	after_grace_period := time.Now().After(s.wait_time)
+	new_state := s.state
 	switch s.state {
 	case ServerGameStatePlaying:
-		if time.Now().After(s.wait_time) && alive == 0 && total > 0 {
-			packet := Packet{PacketType: PacketTypeNewLevel}
+		if after_grace_period && len(alive) <= 1 && total > 1 {
+			current_round := s.stats.Rounds[len(s.stats.Rounds)-1]
+
+			winner_id := DRAW_CONST
+			if len(alive) > 0 {
+				winner_id = alive[0].addr.String()
+				current_round.Winner_ID = winner_id
+			}
+
+			top_player, highest_wins := s.GetHighestWinCount()
+			if highest_wins >= WIN_THRESHOLD {
+				packet := Packet{PacketType: PacketTypeNewMatch}
+				wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
+				event := NewMatchEvent{
+					Timestamp: wait_time,
+				}
+
+				match := s.GetCurrentMatch()
+				match.Winner_ID = top_player
+				match.EndTime = time.Now()
+
+				// should go back to lobby
+				// workaround for now
+				new_state = ServerGameStateStartingNewMatch
+				s.wait_time = wait_time
+				s.Broadcast(packet, event)
+			} else {
+				packet := Packet{PacketType: PacketTypeNewRound}
+				spawns := s.GetSpawnMap()
+				wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
+				event := NewRoundEvent{
+					Spawns:    spawns,
+					Timestamp: wait_time,
+					Level:     s.DetermineNextLevel(),
+					Winner:    winner_id,
+				}
+
+				s.wait_time = wait_time
+				s.Broadcast(packet, event)
+				new_state = ServerGameStateStartingNewRound
+
+			}
+			s.bm.Reset()
+		}
+	case ServerGameStateStartingNewMatch:
+		if after_grace_period {
+			s.stats.Matches = append(s.stats.Matches, s.StartNewMatch())
+			new_state = ServerGameStateStartingNewRound
+			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
+			packet := Packet{PacketType: PacketTypeNewRound}
 			spawns := s.GetSpawnMap()
 			wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
-			event := NewLevelEvent{
+			event := NewRoundEvent{
 				Spawns:    spawns,
 				Timestamp: wait_time,
 				Level:     s.DetermineNextLevel(),
 			}
+			// we omitt the field Winner here
+			// not very clean but it is what it is
 
 			s.wait_time = wait_time
 			s.Broadcast(packet, event)
-			s.state = ServerGameStateStartingNewRound
-
+			new_state = ServerGameStateStartingNewRound
 			s.bm.Reset()
 		}
 	case ServerGameStateStartingNewRound:
 		// adding an extra buffer to let people alive themselves
-		if time.Now().After(s.wait_time) && total > 0 {
-			s.state = ServerGameStatePlaying
+		if after_grace_period && total > 0 {
+			s.stats.Rounds = append(s.stats.Rounds, s.StartNewRound())
+			new_state = ServerGameStatePlaying
 			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
+			s.bm.Reset()
 		}
 	}
+
+	s.state = new_state
 	return s.state
 }
 

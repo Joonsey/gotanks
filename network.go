@@ -28,6 +28,7 @@ type Client struct {
 	is_connected   bool
 	ID             string
 	server_state   ServerGameStateEnum
+	wins           map[string]int
 }
 
 type NetworkManager struct {
@@ -47,6 +48,7 @@ func InitNetworkManager() *NetworkManager {
 
 	nm.client = &Client{}
 	nm.client.packet_channel = make(chan PacketData)
+	nm.client.wins = make(map[string]int)
 	nm.client.conn = conn
 
 	// TODO do something better
@@ -206,11 +208,15 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		}
 
 		delete(game.bm.bullets, hit.Bullet_ID)
-	case PacketTypeNewLevel:
-		event := NewLevelEvent{Spawns: map[string]Position{}}
+	case PacketTypeNewRound:
+		event := NewRoundEvent{Spawns: map[string]Position{}}
 		err := dec.Decode(&event)
 		if err != nil {
-			log.Panic("error decoding spawn map", err)
+			log.Panic("error decoding new round event", err)
+		}
+
+		if event.Winner != "" {
+			c.wins[event.Winner]++
 		}
 
 		spawn, ok := event.Spawns[c.ID]
@@ -224,6 +230,15 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			game.tank.Respawn(spawn)
 			game.bm.Reset()
 		}()
+	case PacketTypeNewMatch:
+		event := NewMatchEvent{}
+		err := dec.Decode(&event)
+		for k := range c.wins {
+			c.wins[k] = 0
+		}
+		if err != nil {
+			log.Panic("error decoding spawn map", err)
+		}
 	case PacketTypeServerStateChanged:
 		err := dec.Decode(&c.server_state)
 		if err != nil {
