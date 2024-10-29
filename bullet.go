@@ -174,12 +174,12 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 		x, y := g.camera.GetRelativePosition(bullet.X, bullet.Y)
 		g.draw_data = append(g.draw_data,
 			DrawData{
-				bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
-				Position{x, y},
-				-bullet.Rotation - g.camera.rotation + math.Pi,
-				1,
-				Position{0, -TURRET_HEIGHT * 2},
-				1,
+				sprites:   bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
+				position:  Position{x, y},
+				rotation:  -bullet.Rotation - g.camera.rotation + math.Pi,
+				intensity: 1,
+				offset:    Position{0, -TURRET_HEIGHT * 2},
+				opacity:   1,
 			})
 	}
 }

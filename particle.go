@@ -10,7 +10,7 @@ import (
 type ParticleTypeEnum int
 
 const (
-	ParticleTypeDebris ParticleTypeEnum = iota
+	ParticleTypeDebrisFromTank ParticleTypeEnum = iota
 	ParticleTypeSmoke
 )
 
@@ -31,6 +31,8 @@ type Particle struct {
 	variance int
 
 	particle_type ParticleTypeEnum
+
+	r, g, b float32
 }
 
 type ParticleManager struct {
@@ -60,6 +62,10 @@ func (pm *ParticleManager) AddParticle(particle Particle) {
 	particle.seed = time.Now().UnixMilli()
 
 	switch particle.particle_type {
+	case ParticleTypeDebrisFromTank:
+		particle.r = 1
+		particle.g = .5
+		particle.b = 0
 	case ParticleTypeSmoke:
 		particle.variance = 4
 	}
@@ -73,24 +79,34 @@ func (pm *ParticleManager) Reset() {
 func (p *Particle) GetDrawData(camera Camera) DrawData {
 	x, y := camera.GetRelativePosition(p.X, p.Y)
 	return DrawData{
-		p.sprites,
-		Position{x, y - p.Offset_z},
-		p.Rotation - camera.rotation,
-		float32(p.intensity),
-		p.offset,
-		float32(p.opacity),
+		sprites:   p.sprites,
+		position:  Position{x, y - p.Offset_z},
+		rotation:  p.Rotation - camera.rotation,
+		intensity: float32(p.intensity),
+		offset:    p.offset,
+		opacity:   float32(p.opacity),
+		r:         p.r,
+		g:         p.g,
+		b:         p.b,
 	}
+}
+
+func interpolate(r_1, g_1, b_1, r_2, g_2, b_2, t float32) (float32, float32, float32) {
+	r := r_1 + t*(r_2-r_1)
+	g := g_1 + t*(g_2-g_1)
+	b := b_1 + t*(b_2-b_1)
+	return r, g, b
 }
 
 func (p *Particle) GetDrawShadowData(camera Camera) DrawData {
 	x, y := camera.GetRelativePosition(p.X, p.Y)
 	return DrawData{
-		p.sprites,
-		Position{x, y - 20},
-		p.Rotation - camera.rotation,
-		0.2,
-		Position{0, 20},
-		0.25,
+		sprites:   p.sprites,
+		position:  Position{x, y - 20},
+		rotation:  p.Rotation - camera.rotation,
+		intensity: 0.2,
+		offset:    Position{0, 20},
+		opacity:   0.25,
 	}
 }
 
@@ -98,14 +114,14 @@ func calculateY(current_t, max_t, y_end float64) float64 {
 	return (y_end / 2) * (1 + math.Sin((2*math.Pi*current_t/max_t)-(math.Pi/2)))
 }
 
-func CalculateSmokeOffsetX(p Particle) float64 {
+func calculateSmokeOffsetX(p Particle) float64 {
 	return float64(p.seed%int64(p.variance)) - (float64(p.variance) / 2) + (math.Sin(p.current_t/(p.max_t/2))*p.current_t)/30
 
 }
 
 func (p *Particle) Update(level *Level) {
 	switch p.particle_type {
-	case ParticleTypeDebris:
+	case ParticleTypeDebrisFromTank:
 		x, y := math.Sin(p.Rotation)*p.velocity, math.Cos(p.Rotation)*p.velocity
 
 		p.Position.Y += y
@@ -128,13 +144,12 @@ func (p *Particle) Update(level *Level) {
 		} else {
 			p.Offset_z = calculateY(p.current_t, p.max_t/2, 20)
 		}
-		p.intensity = 1 - p.current_t/p.max_t
+		p.r, p.g, p.b = interpolate(1, 0.14, 0, 1, 1, 0, (float32(p.current_t) / float32(p.max_t)))
 	case ParticleTypeSmoke:
 		p.Offset_z += p.velocity
-		p.offset.X = CalculateSmokeOffsetX(*p)
+		p.offset.X = calculateSmokeOffsetX(*p)
 
 		p.intensity = p.current_t / p.max_t
-		//p.opacity = p.current_t /.5 / p.max_t
 	}
 	p.current_t++
 }
@@ -149,7 +164,7 @@ func (pm *ParticleManager) GetDrawData(g *Game) {
 func (pm *ParticleManager) Update(g *Game) {
 	particles := []*Particle{}
 	for _, particle := range pm.particles {
-		if particle.particle_type == ParticleTypeDebris {
+		if particle.particle_type == ParticleTypeDebrisFromTank {
 			if int(particle.current_t*100)%14 == 0 {
 				position := particle.Position
 				position.Y -= particle.Offset_z

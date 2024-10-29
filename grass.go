@@ -36,12 +36,12 @@ func (g *Grass) GetDrawData(camera Camera, gm *GrassManager) DrawData {
 	rotation := gm.sway + math.Cos(g.Y)
 	intensity := max(1/1-float32(math.Sqrt(g.rotation*g.rotation)), 0.8)
 	return DrawData{
-		[]*ebiten.Image{g.sprite},
-		Position{x, y},
-		g.rotation + rotation,
-		intensity,
-		Position{},
-		1,
+		sprites:   []*ebiten.Image{g.sprite},
+		position:  Position{x, y},
+		rotation:  g.rotation + rotation,
+		intensity: intensity,
+		offset:    Position{},
+		opacity:   1,
 	}
 }
 

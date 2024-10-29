@@ -34,6 +34,8 @@ type DrawData struct {
 	intensity float32
 	offset    Position
 	opacity   float32
+
+	r, g, b float32
 }
 
 // not to be confused with ServerGameStateEnum
@@ -66,18 +68,36 @@ type Game struct {
 }
 
 func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
-	DrawStackedSprite(
-		data.sprites,
-		screen,
-		data.position.X+data.offset.X,
-		data.position.Y+data.offset.Y,
-		data.rotation,
-		data.intensity,
-		data.opacity,
-	)
+	if data.r != 0 || data.g != 0 || data.b != 0 {
+		DrawStackedSpriteWithColor(
+			data.sprites,
+			screen,
+			data.position.X+data.offset.X,
+			data.position.Y+data.offset.Y,
+			data.rotation,
+			data.r*data.intensity,
+			data.g*data.intensity,
+			data.b*data.intensity,
+			data.opacity,
+		)
+	} else {
+		DrawStackedSprite(
+			data.sprites,
+			screen,
+			data.position.X+data.offset.X,
+			data.position.Y+data.offset.Y,
+			data.rotation,
+			data.intensity,
+			data.opacity,
+		)
+	}
 }
 
 func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64, intensity, opacity float32) {
+	DrawStackedSpriteWithColor(source, screen, x, y, rotation, intensity, intensity, intensity, opacity)
+}
+
+func DrawStackedSpriteWithColor(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64, r, g, b, opacity float32) {
 	half_size := float64(source[0].Bounds().Dx()) / 2
 
 	for i, image := range source {
@@ -91,9 +111,9 @@ func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotat
 
 		op.GeoM.Translate(x, y-float64(i))
 		scale := ebiten.ColorScale{}
-		scale.SetR(intensity)
-		scale.SetG(intensity)
-		scale.SetB(intensity)
+		scale.SetR(r)
+		scale.SetG(g)
+		scale.SetB(b)
 		op.ColorScale.ScaleAlpha(opacity)
 		op.ColorScale.ScaleWithColorScale(scale)
 		screen.DrawImage(image, op)
@@ -184,7 +204,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		x, y := g.camera.GetRelativePosition(track.X, track.Y)
 		offset := float64(8)
 		opacity := float32(track.lifetime) / float32(TRACK_LIFETIME)
-		g.draw_data = append(g.draw_data, DrawData{g.tank.track_sprites, Position{x, y - offset}, track.rotation - g.camera.rotation, 1, Position{0, offset}, opacity})
+		g.draw_data = append(g.draw_data, DrawData{
+			sprites:   g.tank.track_sprites,
+			position:  Position{x, y - offset},
+			rotation:  track.rotation - g.camera.rotation,
+			intensity: 1,
+			offset:    Position{0, offset},
+			opacity:   opacity})
 	}
 
 	sort.Slice(g.draw_data, func(i, j int) bool {

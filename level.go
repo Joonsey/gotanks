@@ -157,7 +157,14 @@ func (l *Level) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 				rel_x -= offset
 				rel_y -= offset
 				sprites := l.am.stacked_map[tile.GetTileRect()]
-				g.draw_data = append(g.draw_data, DrawData{sprites, Position{rel_x, rel_y}, -camera.rotation, 1, Position{offset, offset}, 1})
+				g.draw_data = append(g.draw_data, DrawData{
+					sprites:   sprites,
+					position:  Position{rel_x, rel_y},
+					rotation:  -camera.rotation,
+					intensity: 1,
+					offset:    Position{offset, offset},
+					opacity:   1,
+				})
 			}
 		case LEVEL_CONST_STACKS:
 			for i, tile := range layer.Tiles {
@@ -170,7 +177,13 @@ func (l *Level) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 
 				rel_x, rel_y := camera.GetRelativePosition(i_x*SPRITE_SIZE, i_y*SPRITE_SIZE)
 				sprites := l.am.stacked_map[tile.GetTileRect()]
-				g.draw_data = append(g.draw_data, DrawData{sprites, Position{rel_x, rel_y}, -camera.rotation, 1, Position{}, 1})
+				g.draw_data = append(g.draw_data, DrawData{
+					sprites:   sprites,
+					position:  Position{rel_x, rel_y},
+					rotation:  -camera.rotation,
+					intensity: 1,
+					opacity:   1,
+				})
 			}
 		}
 	}

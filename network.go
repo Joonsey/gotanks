@@ -125,16 +125,35 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 		x, y := g.camera.GetRelativePosition(t.X, t.Y)
 		if t.Alive() {
 			g.draw_data = append(g.draw_data,
-				DrawData{g.tank.sprites, Position{x, y}, t.Rotation - g.camera.rotation, 1, Position{}, 1})
+				DrawData{
+					sprites:   g.tank.sprites,
+					position:  Position{x, y},
+					rotation:  t.Rotation - g.camera.rotation,
+					intensity: 1,
+					opacity:   1},
+			)
 			g.draw_data = append(g.draw_data,
-				DrawData{g.tank.turret.sprites, Position{x, y + 1}, t.Turret_rotation, 1, Position{0, -TURRET_HEIGHT}, 1})
+				DrawData{
+					sprites:   g.tank.turret.sprites,
+					position:  Position{x, y + 1},
+					rotation:  t.Turret_rotation,
+					intensity: 1,
+					offset:    Position{0, -TURRET_HEIGHT},
+					opacity:   1},
+			)
 			if int(g.time*100)%TRACK_INTERVAL == 0 {
 				g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 			}
 		} else {
 			// TODO extrapolate dead sprites data
 			dead_sprites := g.tank.dead_sprites
-			g.draw_data = append(g.draw_data, DrawData{dead_sprites, Position{x, y}, t.Rotation - g.camera.rotation, 1, Position{}, 1})
+			g.draw_data = append(g.draw_data, DrawData{
+				sprites:   dead_sprites,
+				position:  Position{x, y},
+				rotation:  t.Rotation - g.camera.rotation,
+				intensity: 1,
+				opacity:   1},
+			)
 
 			// not sure how i feel about this living in a draw call
 			t.TryAddSmoke(g)
@@ -181,7 +200,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
 					sprites:       particle_sprite,
 					velocity:      n * .4,
-					particle_type: ParticleTypeDebris,
+					particle_type: ParticleTypeDebrisFromTank,
 					max_t:         60 * n,
 				})
 		}

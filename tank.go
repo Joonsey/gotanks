@@ -66,14 +66,33 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
 
 	if t.Alive() {
-		g.draw_data = append(g.draw_data, DrawData{t.sprites, Position{x, y}, t.Rotation - camera.rotation, 1, Position{}, 1})
-		g.draw_data = append(g.draw_data, DrawData{t.turret.sprites, Position{x, y + 1}, *t.turret.rotation, 1, Position{0, -TURRET_HEIGHT}, 1})
+		g.draw_data = append(g.draw_data, DrawData{
+			sprites:   t.sprites,
+			position:  Position{x, y},
+			rotation:  t.Rotation - camera.rotation,
+			intensity: 1,
+			opacity:   1},
+		)
+		g.draw_data = append(g.draw_data, DrawData{
+			sprites:   t.turret.sprites,
+			position:  Position{x, y + 1},
+			rotation:  *t.turret.rotation,
+			intensity: 1,
+			offset:    Position{0, -TURRET_HEIGHT},
+			opacity:   1},
+		)
 		if int(g.time*100)%TRACK_INTERVAL == 0 {
 			g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 		}
 
 	} else {
-		g.draw_data = append(g.draw_data, DrawData{t.dead_sprites, Position{x, y}, t.Rotation - camera.rotation, 1, Position{}, 1})
+		g.draw_data = append(g.draw_data, DrawData{
+			sprites:   t.dead_sprites,
+			position:  Position{x, y},
+			rotation:  t.Rotation - camera.rotation,
+			intensity: 1,
+			opacity:   1},
+		)
 	}
 }
 
