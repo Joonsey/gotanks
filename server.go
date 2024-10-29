@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -137,7 +136,7 @@ func (s *Server) Broadcast(packet Packet, data interface{}) {
 	s.connected_players.RLock()
 	defer s.connected_players.RUnlock()
 
-	raw_data, err := SerializePacket(packet, data)
+	raw_data, err := SerializePacket(packet, [16]byte{}, data)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -161,12 +160,12 @@ func (s *Server) HandlePacket(packet_data PacketData) {
 		s.bm.AddBullet(bullet)
 	case PacketTypeUpdateCurrentPlayer:
 		s.connected_players.Lock()
-		player := s.connected_players.m[packet_data.Addr.String()]
+		player := s.connected_players.m[AuthToString(packet_data.Packet.Auth)]
 		err := dec.Decode(&player.tank)
 		if err != nil {
 			log.Panic("error decoding player", err)
 		}
-		s.connected_players.m[packet_data.Addr.String()] = player
+		s.connected_players.m[AuthToString(packet_data.Packet.Auth)] = player
 		s.connected_players.Unlock()
 	}
 }
@@ -180,9 +179,7 @@ func (s *Server) GetSpawnMap() map[string]Position {
 
 	i := 0
 	for key := range s.connected_players.m {
-		// until revision of 'id'
-		player_port := strings.Split(key, ":")[1]
-		spawn_map[player_port] = spawns[i%len(spawns)]
+		spawn_map[key] = spawns[i%len(spawns)]
 		i++
 	}
 
@@ -406,18 +403,19 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 func (s *Server) AuthorizePacket(packet_data PacketData) error {
 	s.connected_players.Lock()
 	defer s.connected_players.Unlock()
+	auth := AuthToString(packet_data.Packet.Auth)
 
 	for key, _ := range s.connected_players.m {
-		if key == packet_data.Addr.String() {
+		if key == auth {
 			// authorized, and no erros
 			return nil
 		}
 	}
 
 	if s.accepts_new_connections {
-		player := NewPlayer(packet_data.Addr.String())
+		player := NewPlayer(auth)
 		go player.Update(s.sm)
-		s.connected_players.m[packet_data.Addr.String()] = ConnectedPlayer{addr: &packet_data.Addr, player: player}
+		s.connected_players.m[auth] = ConnectedPlayer{addr: &packet_data.Addr, player: player}
 
 		// added and authorized
 		log.Println("accepted new connection")

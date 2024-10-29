@@ -7,8 +7,9 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -26,9 +27,9 @@ type Client struct {
 
 	packet_channel chan PacketData
 	is_connected   bool
-	ID             string
 	server_state   ServerGameStateEnum
 	wins           map[string]int
+	Auth           [16]byte
 }
 
 type NetworkManager struct {
@@ -51,16 +52,13 @@ func InitNetworkManager() *NetworkManager {
 	nm.client.wins = make(map[string]int)
 	nm.client.conn = conn
 
-	// TODO do something better
-	nm.client.ID = strings.Split(nm.client.conn.LocalAddr().String(), "[::]:")[1]
-
 	nm.client.target = &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: SERVERPORT}
+	nm.client.Auth = uuid.New()
 	return &nm
 }
 
 func (c *Client) isSelf(id string) bool {
-	player_port := strings.Split(id, ":")[1]
-	return c.ID == player_port
+	return AuthToString(c.Auth) == id
 }
 
 func (c *Client) Send(packet_type PacketType, data interface{}) error {
@@ -69,7 +67,7 @@ func (c *Client) Send(packet_type PacketType, data interface{}) error {
 	}
 	packet := Packet{}
 	packet.PacketType = packet_type
-	data_bytes, err := SerializePacket(packet, data)
+	data_bytes, err := SerializePacket(packet, c.Auth, data)
 
 	if err != nil {
 		return err
@@ -219,7 +217,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			c.wins[event.Winner]++
 		}
 
-		spawn, ok := event.Spawns[c.ID]
+		spawn, ok := event.Spawns[AuthToString(c.Auth)]
 		if !ok {
 			log.Panic("could not find spawn in spawn map ", event.Spawns)
 		}

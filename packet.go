@@ -19,6 +19,7 @@ type Packet struct {
 	Timestamp   uint64
 	PayloadSize uint32
 	TotalSize   uint32
+	Auth        [16]byte
 }
 
 type PacketData struct {
@@ -95,6 +96,12 @@ func DeserializePacket(data []byte) (Packet, []byte, error) {
 		return packet, nil, err
 	}
 
+	err = binary.Read(r, binary.BigEndian, &packet.Auth)
+	if err != nil {
+		fmt.Println("error during decoding of auth size", err)
+		return packet, nil, err
+	}
+
 	err = binary.Read(r, binary.BigEndian, &packet.PayloadSize)
 	if err != nil {
 		fmt.Println("error during decoding of paylaod size", err)
@@ -117,11 +124,11 @@ func DeserializePacket(data []byte) (Packet, []byte, error) {
 	return packet, rawData, nil
 }
 
-func SerializePacket(packet Packet, data interface{}) ([]byte, error) {
+func SerializePacket(packet Packet, auth [16]byte, data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 
 	// setting metadata
-	packet.HeaderSize = 17 + 8
+	packet.HeaderSize = 17 + 8 + 16
 	packet.MagicBytes = MAGICBYTES
 
 	packet.Timestamp = uint64(time.Now().UTC().UnixMilli())
@@ -130,6 +137,7 @@ func SerializePacket(packet Packet, data interface{}) ([]byte, error) {
 	binary.Write(&buf, binary.BigEndian, packet.HeaderSize)
 	binary.Write(&buf, binary.BigEndian, packet.MagicBytes)
 	binary.Write(&buf, binary.BigEndian, packet.Timestamp)
+	binary.Write(&buf, binary.BigEndian, auth)
 
 	dataBytes, err := serializeData(data)
 	if err != nil {
@@ -139,6 +147,7 @@ func SerializePacket(packet Packet, data interface{}) ([]byte, error) {
 	packet.TotalSize = uint32(buf.Len()+8) + uint32(len(dataBytes))
 	// adding the 8 bytes from totalsize and payloadsize values
 
+	//log.Println(packet.TotalSize, packet.PayloadSize, packet.HeaderSize)
 	binary.Write(&buf, binary.BigEndian, packet.PayloadSize)
 	binary.Write(&buf, binary.BigEndian, packet.TotalSize)
 
@@ -156,4 +165,8 @@ func serializeData(data interface{}) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func AuthToString(auth [16]byte) string {
+	return fmt.Sprintf("%x", auth)
 }
