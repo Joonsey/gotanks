@@ -204,7 +204,7 @@ func (pm *ParticleManager) Update(g *Game) {
 			}
 		}
 		if particle.particle_type == ParticleTypeGunSmoke {
-			if int(particle.current_t*100)%11 == 0 {
+			if int(particle.current_t*100)%8 == 0 {
 				position := particle.Position
 				position.Y -= particle.Offset_z
 				pm.AddParticle(

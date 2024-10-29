@@ -117,10 +117,14 @@ func (t *Tank) TryMove(g *Game, speed float64) {
 
 func (t *TankMinimal) TryAddSmoke(g *Game) {
 	if int(g.time*100)%13 == 0 {
+		offset := 4.
+		pos := t.Position
+		pos.Y -= offset
+		pos.X -= offset
 		g.pm.AddParticle(
 			Particle{
 				particle_type: ParticleTypeSmoke,
-				Position:      t.Position,
+				Position:      pos,
 				velocity:      0.2,
 				sprites:       g.am.GetSprites("assets/sprites/stacks/particle-cube-template.png"),
 			})
