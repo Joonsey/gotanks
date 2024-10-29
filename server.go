@@ -2,13 +2,16 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/gob"
 	"errors"
-	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -27,12 +30,12 @@ const (
 	STATE_CHANGE_GRACE_MS = 500
 
 	WIN_THRESHOLD = 3
-	DRAW_CONST    = "DRAW"
 )
 
 type ConnectedPlayer struct {
-	tank TankMinimal
-	addr *net.UDPAddr
+	tank   TankMinimal
+	player Player
+	addr   *net.UDPAddr
 }
 
 type PlayerUpdate struct {
@@ -56,12 +59,6 @@ type NewMatchEvent struct {
 	Timestamp time.Time
 }
 
-type ServerStats struct {
-	Matches    []*Match
-	KillEvents []*KillEvent
-	Rounds     []*Round
-}
-
 type Server struct {
 	conn                    *net.UDPConn
 	accepts_new_connections bool
@@ -73,7 +70,7 @@ type Server struct {
 	bm    BulletManager
 	level Level
 	state ServerGameStateEnum
-	stats ServerStats
+	sm    *ServerSyncManager
 
 	wait_time time.Time
 
@@ -100,9 +97,18 @@ func StartServer() {
 	server.level = loadLevel("assets/tiled/level_1.tmx", nil, nil)
 	server.bm.bullets = make(map[string]*Bullet)
 
+	server.sm = InitStatsManager()
+
 	go server.Listen()
 	go server.StartHandlingPackets()
 
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		server.sm.DeInit()
+		os.Exit(0)
+	}()
 	// this is blocking
 	server.StartServerLogic()
 
@@ -222,18 +228,11 @@ func (s *Server) UpdateServerLogic() {
 			// 'owner:bullet_id' however, we don't have a solid way to id a user yet
 			// so this is currently not 100% working, but will when authorization is complete
 			// so TODO authorization...
-			shooter_id := strings.Split(bullet_hit.ID, ":")[0]
-			s.stats.KillEvents = append(s.stats.KillEvents,
-				&KillEvent{
-					Kill_ID:   fmt.Sprintf("%d", s.kill_id),
-					Round_ID:  s.stats.Rounds[len(s.stats.Rounds)-1].Round_ID,
-					Killer_ID: shooter_id,
-					Victim_ID: key,
-					Timestamp: time.Now(),
-				})
-
-			log.Println(s.stats.KillEvents[0])
+			//shooter_id := strings.Split(bullet_hit.ID, ":")[0]
 			delete(s.bm.bullets, bullet_hit.ID)
+
+			// TODO
+			// NewKillEvent()
 		}
 	}
 	s.connected_players.RUnlock()
@@ -277,13 +276,13 @@ func (s *Server) GetHighestWinCount() (top_player string, highest_wins int) {
 
 	wins := make(map[string]int)
 	if match == nil {
-		for _, round := range s.stats.Rounds {
-			wins[round.Winner_ID]++
+		for _, round := range s.sm.stats.Rounds {
+			wins[round.Winner_ID.String]++
 		}
 	} else {
-		for _, round := range s.stats.Rounds {
+		for _, round := range s.sm.stats.Rounds {
 			if round.Match_ID == match.Match_ID {
-				wins[round.Winner_ID]++
+				wins[round.Winner_ID.String]++
 			}
 		}
 	}
@@ -299,18 +298,14 @@ func (s *Server) GetHighestWinCount() (top_player string, highest_wins int) {
 }
 
 func (s *Server) GetCurrentMatch() *Match {
-	if len(s.stats.Matches) == 0 {
+	if len(s.sm.stats.Matches) == 0 {
 		return nil
 	}
-	return s.stats.Matches[len(s.stats.Matches)-1]
+	return s.sm.stats.Matches[len(s.sm.stats.Matches)-1]
 }
 
 func (s *Server) StartNewMatch() *Match {
-	match := Match{}
-	match.Match_ID = fmt.Sprintf("%d", s.match_id)
-	s.match_id++
-
-	match.Start_time = time.Now()
+	match := NewMatch(s.sm)
 
 	return &match
 }
@@ -320,11 +315,7 @@ func (s *Server) StartNewRound() *Round {
 	if current_match == nil {
 		log.Panic("can not start a round before a match")
 	}
-	round := Round{}
-	round.Round_ID = fmt.Sprintf("%d", s.round_id)
-	s.round_id++
-	round.Match_ID = current_match.Match_ID
-	round.Level = s.DetermineNextLevel()
+	round := NewRound(*current_match, s.DetermineNextLevel())
 
 	return &round
 }
@@ -336,13 +327,11 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 	switch s.state {
 	case ServerGameStatePlaying:
 		if after_grace_period && len(alive) <= 1 && total > 1 {
-			current_round := s.stats.Rounds[len(s.stats.Rounds)-1]
+			current_round := s.sm.stats.Rounds[len(s.sm.stats.Rounds)-1]
 
-			winner_id := DRAW_CONST
-			if len(alive) > 0 {
-				winner_id = alive[0].addr.String()
-				current_round.Winner_ID = winner_id
-			}
+			winner_id := alive[0].player.Player_ID
+			current_round.Winner_ID = sql.NullString{String: winner_id, Valid: true}
+			go current_round.CompleteRound(s.sm)
 
 			top_player, highest_wins := s.GetHighestWinCount()
 			if highest_wins >= WIN_THRESHOLD {
@@ -353,8 +342,8 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 				}
 
 				match := s.GetCurrentMatch()
-				match.Winner_ID = top_player
-				match.End_time = time.Now()
+				match.Winner_ID = sql.NullString{String: top_player, Valid: true}
+				go match.CompleteMatch(s.sm)
 
 				// should go back to lobby
 				// workaround for now
@@ -381,7 +370,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 		}
 	case ServerGameStateStartingNewMatch:
 		if after_grace_period {
-			s.stats.Matches = append(s.stats.Matches, s.StartNewMatch())
+			s.sm.stats.Matches = append(s.sm.stats.Matches, s.StartNewMatch())
 			new_state = ServerGameStateStartingNewRound
 			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
 			packet := Packet{PacketType: PacketTypeNewRound}
@@ -403,7 +392,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 	case ServerGameStateStartingNewRound:
 		// adding an extra buffer to let people alive themselves
 		if after_grace_period && total > 0 {
-			s.stats.Rounds = append(s.stats.Rounds, s.StartNewRound())
+			s.sm.stats.Rounds = append(s.sm.stats.Rounds, s.StartNewRound())
 			new_state = ServerGameStatePlaying
 			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
 			s.bm.Reset()
@@ -426,7 +415,9 @@ func (s *Server) AuthorizePacket(packet_data PacketData) error {
 	}
 
 	if s.accepts_new_connections {
-		s.connected_players.m[packet_data.Addr.String()] = ConnectedPlayer{addr: &packet_data.Addr}
+		player := NewPlayer(packet_data.Addr.String())
+		go player.Update(s.sm)
+		s.connected_players.m[packet_data.Addr.String()] = ConnectedPlayer{addr: &packet_data.Addr, player: player}
 
 		// added and authorized
 		log.Println("accepted new connection")
