@@ -57,12 +57,9 @@ type NewMatchEvent struct {
 }
 
 type ServerStats struct {
-	Matches     []*Match
-	KillEvents  []*KillEvent
-	DeathEvents []*DeathEvent
-	Rounds      []*Round
-
-	winner string
+	Matches    []*Match
+	KillEvents []*KillEvent
+	Rounds     []*Round
 }
 
 type Server struct {
@@ -83,6 +80,7 @@ type Server struct {
 	// temporary until db
 	round_id int
 	match_id int
+	kill_id  int
 }
 
 func StartServer() {
@@ -220,6 +218,21 @@ func (s *Server) UpdateServerLogic() {
 			s.Broadcast(packet, data)
 			s.connected_players.RLock()
 
+			// we know that the bullet is supposed be split up this way:
+			// 'owner:bullet_id' however, we don't have a solid way to id a user yet
+			// so this is currently not 100% working, but will when authorization is complete
+			// so TODO authorization...
+			shooter_id := strings.Split(bullet_hit.ID, ":")[0]
+			s.stats.KillEvents = append(s.stats.KillEvents,
+				&KillEvent{
+					Kill_ID:   fmt.Sprintf("%d", s.kill_id),
+					Round_ID:  s.stats.Rounds[len(s.stats.Rounds)-1].Round_ID,
+					Killer_ID: shooter_id,
+					Victim_ID: key,
+					Timestamp: time.Now(),
+				})
+
+			log.Println(s.stats.KillEvents[0])
 			delete(s.bm.bullets, bullet_hit.ID)
 		}
 	}
@@ -297,7 +310,7 @@ func (s *Server) StartNewMatch() *Match {
 	match.Match_ID = fmt.Sprintf("%d", s.match_id)
 	s.match_id++
 
-	match.StartTime = time.Now()
+	match.Start_time = time.Now()
 
 	return &match
 }
@@ -341,7 +354,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 
 				match := s.GetCurrentMatch()
 				match.Winner_ID = top_player
-				match.EndTime = time.Now()
+				match.End_time = time.Now()
 
 				// should go back to lobby
 				// workaround for now
