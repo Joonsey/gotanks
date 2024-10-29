@@ -12,6 +12,7 @@ type ParticleTypeEnum int
 const (
 	ParticleTypeDebrisFromTank ParticleTypeEnum = iota
 	ParticleTypeSmoke
+	ParticleTypeGunSmoke
 )
 
 type Particle struct {
@@ -36,15 +37,16 @@ type Particle struct {
 }
 
 type ParticleManager struct {
-	stiffness int
+	am *AssetManager
 
 	particles []*Particle
 }
 
-func InitParticleManager() *ParticleManager {
+func InitParticleManager(am *AssetManager) *ParticleManager {
 	pm := ParticleManager{}
 	pm.particles = []*Particle{}
 
+	pm.am = am
 	return &pm
 }
 
@@ -59,6 +61,11 @@ func (pm *ParticleManager) AddParticle(particle Particle) {
 	if particle.max_t == 0 {
 		particle.max_t = 120
 	}
+
+	if particle.sprites == nil {
+		particle.sprites = pm.am.GetSprites("assets/sprites/stacks/particle-cube-template.png")
+	}
+
 	particle.seed = time.Now().UnixMilli()
 
 	switch particle.particle_type {
@@ -91,11 +98,15 @@ func (p *Particle) GetDrawData(camera Camera) DrawData {
 	}
 }
 
-func interpolate(r_1, g_1, b_1, r_2, g_2, b_2, t float32) (float32, float32, float32) {
+func interpolateColor(r_1, g_1, b_1, r_2, g_2, b_2, t float32) (float32, float32, float32) {
 	r := r_1 + t*(r_2-r_1)
 	g := g_1 + t*(g_2-g_1)
 	b := b_1 + t*(b_2-b_1)
 	return r, g, b
+}
+
+func exponentialDecay(start_value, decay_rate, time float64) float64 {
+	return start_value * math.Exp(-decay_rate*time)
 }
 
 func (p *Particle) GetDrawShadowData(camera Camera) DrawData {
@@ -144,12 +155,17 @@ func (p *Particle) Update(level *Level) {
 		} else {
 			p.Offset_z = calculateY(p.current_t, p.max_t/2, 20)
 		}
-		p.r, p.g, p.b = interpolate(1, 0.14, 0, 1, 1, 0, (float32(p.current_t) / float32(p.max_t)))
+		p.r, p.g, p.b = interpolateColor(1, 0.14, 0, 1, 1, 0, (float32(p.current_t) / float32(p.max_t)))
 	case ParticleTypeSmoke:
 		p.Offset_z += p.velocity
 		p.offset.X = calculateSmokeOffsetX(*p)
 
 		p.intensity = p.current_t / p.max_t
+	case ParticleTypeGunSmoke:
+		x, y := math.Sin(p.Rotation)*p.velocity, math.Cos(p.Rotation)*p.velocity
+		velocity := exponentialDecay(p.velocity, 5, p.current_t / p.max_t)
+		p.Position.X += velocity * x
+		p.Position.Y += velocity * y
 	}
 	p.current_t++
 }
@@ -176,6 +192,22 @@ func (pm *ParticleManager) Update(g *Game) {
 						sprites:       particle.sprites,
 						current_t:     30,
 						max_t:         80,
+						variance:      12,
+					},
+				)
+			}
+		}
+		if particle.particle_type == ParticleTypeGunSmoke {
+			if int(particle.current_t*100)%11 == 0 {
+				position := particle.Position
+				position.Y -= particle.Offset_z
+				pm.AddParticle(
+					Particle{
+						particle_type: ParticleTypeSmoke,
+						Position:      position,
+						velocity:      0.1,
+						sprites:       particle.sprites,
+						max_t:         15,
 						variance:      12,
 					},
 				)

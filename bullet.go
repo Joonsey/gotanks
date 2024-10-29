@@ -39,8 +39,9 @@ type BulletHit struct {
 type BulletManager struct {
 	bullets map[string]*Bullet
 
-	network_manager *NetworkManager
-	asset_manager   *AssetManager
+	network_manager  *NetworkManager
+	asset_manager    *AssetManager
+	particle_manager *ParticleManager
 	index           uint
 }
 
@@ -76,16 +77,17 @@ func (bm *BulletManager) Reset() {
 	}
 }
 
-func InitBulletManager(nm *NetworkManager, am *AssetManager) *BulletManager {
-	if nm == nil || am == nil {
+func InitBulletManager(nm *NetworkManager, am *AssetManager, pm *ParticleManager) *BulletManager {
+	if nm == nil || am == nil || pm == nil {
 		// this could be solved by not passing pointers
 		// but that's not cool
 		log.Fatal("bullet manager dependencies not initialized")
 	}
 	bm := BulletManager{}
 	bm.network_manager = nm
-
 	bm.asset_manager = am
+	bm.particle_manager = pm
+
 	bm.bullets = make(map[string]*Bullet)
 
 	return &bm
@@ -107,6 +109,16 @@ func (bm *BulletManager) AddBullet(bullet Bullet) {
 	bullet.num_bounces = bm.DetermineNumBounces(bullet.Bullet_type)
 	bullet.velocity = bm.DetermineVelocity(bullet.Bullet_type)
 
+	if bm.particle_manager != nil {
+		bm.particle_manager.AddParticle(
+			Particle{
+				particle_type: ParticleTypeGunSmoke,
+				Rotation: bullet.Rotation,
+				Position: bullet.Position,
+				velocity: 2,
+				max_t: 20,
+			})
+	}
 	bm.bullets[bullet.ID] = &bullet
 }
 

@@ -278,8 +278,8 @@ func main() {
 	game.camera.rotation = -46 * math.Pi / 180
 
 	game.nm = InitNetworkManager()
-	game.bm = InitBulletManager(game.nm, game.am)
-	game.pm = InitParticleManager()
+	game.pm = InitParticleManager(game.am)
+	game.bm = InitBulletManager(game.nm, game.am, game.pm)
 
 	game.gm = &GrassManager{}
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)
