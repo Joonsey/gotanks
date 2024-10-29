@@ -104,10 +104,20 @@ func NewPlayer(addr string) Player {
 	return p
 }
 
-func NewKillEvent(sm *ServerSyncManager) KillEvent {
-	//TODO
-	return KillEvent{}
+func NewKillEvent(round_id, victim_id, killer_id string) KillEvent {
+	k := KillEvent{}
+	k.Kill_ID = uuid.NewString()
+	k.Killer_ID = killer_id
+	k.Round_ID = round_id
+	k.Victim_ID = victim_id
+	k.Timestamp = time.Now()
+	return k
 }
+
+// TODO ALL SQL EXEC
+// should be goroutines
+
+// TODO do not forget. Please... :(
 
 func NewMatch(sm *ServerSyncManager) Match {
 	m := Match{}
@@ -124,13 +134,37 @@ func NewMatch(sm *ServerSyncManager) Match {
 	return m
 }
 
-func NewRound(m Match, level LevelEnum) Round {
+func NewRound(m Match, level LevelEnum, sm *ServerSyncManager) Round {
 	r := Round{}
 	r.Round_ID = uuid.NewString()
 	r.Match_ID = m.Match_ID
 	r.Level = level
+	_, err := sm.db_handle.Exec("INSERT OR REPLACE INTO rounds (round_id, match_id, winner_id, level) VALUES (?, ?, ?, ?)",
+		r.Round_ID,
+		r.Match_ID,
+		sql.NullString{},
+		r.Level,
+	)
+	if err != nil {
+		log.Panic(err)
+	}
 
 	return r
+}
+
+func (k *KillEvent) Sync(sm *ServerSyncManager) {
+	log.Println(k)
+	_, err := sm.db_handle.Exec("INSERT OR REPLACE INTO kill_events (kill_id, time_stamp, round_id, killer_id, victim_id) VALUES (?, ?, ?, ?, ?)",
+		k.Kill_ID,
+		k.Timestamp.Format(time.RFC3339),
+		k.Round_ID,
+		k.Killer_ID,
+		k.Victim_ID,
+	)
+	if err != nil {
+		log.Panic(err)
+	}
+
 }
 
 func (p *Player) Update(sm *ServerSyncManager) {
@@ -154,7 +188,6 @@ func (r *Round) CompleteRound(sm *ServerSyncManager) {
 
 	_, err := sm.db_handle.Exec("INSERT OR REPLACE INTO rounds (round_id, match_id, winner_id, level) VALUES (?, ?, ?, ?)",
 		r.Round_ID,
-		//match.Session_ID,
 		r.Match_ID,
 		r.Winner_ID,
 		r.Level,

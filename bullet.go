@@ -55,7 +55,7 @@ func (bm *BulletManager) NewBulletId() string {
 		return fmt.Sprintf("0:%d", bm.index)
 	}
 
-	return fmt.Sprintf("%s:%d", bm.network_manager.client.Auth, bm.index)
+	return fmt.Sprintf("%x:%d", bm.network_manager.client.Auth, bm.index)
 }
 
 func (bm *BulletManager) Shoot(bullet Bullet) {

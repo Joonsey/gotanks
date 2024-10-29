@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -225,11 +226,13 @@ func (s *Server) UpdateServerLogic() {
 			// 'owner:bullet_id' however, we don't have a solid way to id a user yet
 			// so this is currently not 100% working, but will when authorization is complete
 			// so TODO authorization...
-			//shooter_id := strings.Split(bullet_hit.ID, ":")[0]
 			delete(s.bm.bullets, bullet_hit.ID)
-
-			// TODO
-			// NewKillEvent()
+			if len(s.sm.stats.Rounds) > 0 {
+				round_id := s.sm.stats.Rounds[len(s.sm.stats.Rounds)-1].Round_ID
+				shooter_id := strings.Split(bullet_hit.ID, ":")[0]
+				kill_event := NewKillEvent(round_id, key, shooter_id)
+				kill_event.Sync(s.sm)
+			}
 		}
 	}
 	s.connected_players.RUnlock()
@@ -312,7 +315,7 @@ func (s *Server) StartNewRound() *Round {
 	if current_match == nil {
 		log.Panic("can not start a round before a match")
 	}
-	round := NewRound(*current_match, s.DetermineNextLevel())
+	round := NewRound(*current_match, s.DetermineNextLevel(), s.sm)
 
 	return &round
 }
