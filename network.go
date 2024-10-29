@@ -53,6 +53,9 @@ func InitNetworkManager() *NetworkManager {
 	nm.client.conn = conn
 
 	nm.client.target = &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: SERVERPORT}
+
+	// this should be persistent
+	// with an option to be not persistent
 	nm.client.Auth = uuid.New()
 	return &nm
 }
