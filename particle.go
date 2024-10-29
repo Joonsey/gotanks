@@ -215,6 +215,7 @@ func (pm *ParticleManager) Update(g *Game) {
 						sprites:       particle.sprites,
 						max_t:         15,
 						variance:      12,
+						offset:        particle.offset,
 					},
 				)
 			}

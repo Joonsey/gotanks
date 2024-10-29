@@ -119,7 +119,7 @@ func (bm *BulletManager) AddBullet(bullet Bullet) {
 				Position:      bullet.Position,
 				velocity:      2,
 				offset:        Position{0, -TURRET_HEIGHT * 2},
-				max_t:         20,
+				max_t:         25,
 			})
 	}
 	bm.mutex.Lock()
