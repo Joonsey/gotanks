@@ -153,7 +153,6 @@ func NewRound(m Match, level LevelEnum, sm *ServerSyncManager) Round {
 }
 
 func (k *KillEvent) Sync(sm *ServerSyncManager) {
-	log.Println(k)
 	_, err := sm.db_handle.Exec("INSERT OR REPLACE INTO kill_events (kill_id, time_stamp, round_id, killer_id, victim_id) VALUES (?, ?, ?, ?, ?)",
 		k.Kill_ID,
 		k.Timestamp.Format(time.RFC3339),
