@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -56,6 +57,7 @@ type Game struct {
 	nm     *NetworkManager
 	bm     *BulletManager
 	pm     *ParticleManager
+	sm     *SaveManager
 	camera Camera
 	time   float64
 
@@ -257,6 +259,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	start_server := flag.Bool("server", false, "start server")
+	force_new_id := flag.Bool("f", false, "force new id")
+	flag.Parse()
+
 	tank := Tank{
 		TankMinimal:   TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
 		sprites:       SplitSprites(img),
@@ -275,12 +281,20 @@ func main() {
 
 	game.am = &AssetManager{}
 	game.am.Init("temp.json")
+	game.sm = InitSaveManager()
+
+	if game.sm.IsFresh() || *force_new_id {
+		game.sm.data.Player_ID = uuid.New()
+		game.sm.Save()
+	}
 
 	game.camera.rotation = -46 * math.Pi / 180
 
 	game.nm = InitNetworkManager()
 	game.pm = InitParticleManager(game.am)
 	game.bm = InitBulletManager(game.nm, game.am, game.pm)
+
+	game.nm.client.Auth = game.sm.data.Player_ID
 
 	game.gm = &GrassManager{}
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)
@@ -290,8 +304,6 @@ func main() {
 
 	//game.pm.AddParticle(Particle{particle_type: ParticleTypeTest})
 
-	start_server := flag.Bool("server", false, "start server")
-	flag.Parse()
 	if *start_server {
 		go StartServer()
 	}

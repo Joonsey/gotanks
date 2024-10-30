@@ -8,8 +8,6 @@ import (
 	"math/rand"
 	"net"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 const (
@@ -54,9 +52,6 @@ func InitNetworkManager() *NetworkManager {
 
 	nm.client.target = &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: SERVERPORT}
 
-	// this should be persistent
-	// with an option to be not persistent
-	nm.client.Auth = uuid.New()
 	return &nm
 }
 
