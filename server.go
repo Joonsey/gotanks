@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -18,16 +19,28 @@ import (
 type ServerGameStateEnum int
 
 const (
-	ServerGameStateStartingNewMatch ServerGameStateEnum = iota
+	NetBoolTrue  = 1
+	NetBoolFalse = 2
+)
+
+const (
+	ServerGameStateWaitingInLobby ServerGameStateEnum = iota
 	ServerGameStatePlaying
-	ServerGameStateWaiting
+	ServerGameStateStartingNewMatch
 	ServerGameStateStartingNewRound
 	ServerGameStateGoingBackToLobby
 )
 
+// converts uint to bool
+// we need this because gob can't decode nil values
+func NetBoolify(n uint) bool {
+	return n == 1
+}
+
 const (
 	NEW_LEVEL_INTERVAL_S  = 3
 	STATE_CHANGE_GRACE_MS = 500
+	KEEPALIVE_INTERVAL    = 30
 
 	WIN_THRESHOLD = 3
 )
@@ -36,11 +49,13 @@ type ConnectedPlayer struct {
 	tank   TankMinimal
 	player Player
 	addr   *net.UDPAddr
+	ready  uint
 }
 
 type PlayerUpdate struct {
-	Tank TankMinimal
-	ID   string
+	Tank  TankMinimal
+	ID    string
+	Ready uint
 }
 
 type ConnectedPlayers struct {
@@ -168,6 +183,18 @@ func (s *Server) HandlePacket(packet_data PacketData) {
 		}
 		s.connected_players.m[AuthToString(packet_data.Packet.Auth)] = player
 		s.connected_players.Unlock()
+	case PacketTypeClientToggleReady:
+		s.connected_players.Lock()
+		player := s.connected_players.m[AuthToString(packet_data.Packet.Auth)]
+		if NetBoolify(player.ready) {
+			player.ready = NetBoolFalse
+		} else {
+			player.ready = NetBoolTrue
+		}
+
+		s.connected_players.m[AuthToString(packet_data.Packet.Auth)] = player
+		s.connected_players.Unlock()
+
 	}
 }
 
@@ -200,8 +227,11 @@ func (s *Server) UpdateServerLogic() {
 		players := []PlayerUpdate{}
 		s.connected_players.RLock()
 		for key, value := range s.connected_players.m {
-			players = append(players, PlayerUpdate{Tank: value.tank, ID: key})
+			players = append(players, PlayerUpdate{Tank: value.tank, ID: key, Ready: value.ready})
 		}
+		sort.Slice(players, func(i, j int) bool {
+			return players[i].ID < players[j].ID
+		})
 		s.connected_players.RUnlock()
 		s.Broadcast(packet, players)
 	}
@@ -267,6 +297,20 @@ func (s *Server) GetAlivePlayers() (alive []ConnectedPlayer, total_count int) {
 	return alive_player, len(s.connected_players.m)
 }
 
+func (s *Server) GetReadyPlayers() (ready []ConnectedPlayer, total_count int) {
+	s.connected_players.Lock()
+	defer s.connected_players.Unlock()
+
+	ready_players := []ConnectedPlayer{}
+	for _, value := range s.connected_players.m {
+		if NetBoolify(value.ready) {
+			ready_players = append(ready_players, value)
+		}
+	}
+
+	return ready_players, len(s.connected_players.m)
+}
+
 func (s *Server) DetermineNextLevel() LevelEnum {
 	return 1
 }
@@ -325,6 +369,17 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 	after_grace_period := time.Now().After(s.wait_time)
 	new_state := s.state
 	switch s.state {
+	case ServerGameStateWaitingInLobby:
+		ready, total := s.GetReadyPlayers()
+		if after_grace_period && total > 1 && len(ready) == total {
+			packet := Packet{PacketType: PacketTypeNewMatch}
+			new_state = ServerGameStateStartingNewMatch
+			wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
+			event := NewMatchEvent{
+				Timestamp: wait_time,
+			}
+			s.Broadcast(packet, event)
+		}
 	case ServerGameStatePlaying:
 		if after_grace_period && len(alive) <= 1 && total > 1 {
 			current_round := s.sm.stats.Rounds[len(s.sm.stats.Rounds)-1]
@@ -335,21 +390,15 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 
 			top_player, highest_wins := s.GetHighestWinCount()
 			if highest_wins >= WIN_THRESHOLD {
-				packet := Packet{PacketType: PacketTypeNewMatch}
-				wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
-				event := NewMatchEvent{
-					Timestamp: wait_time,
-				}
-
 				match := s.GetCurrentMatch()
 				match.Winner_ID = sql.NullString{String: top_player, Valid: true}
 				go match.CompleteMatch(s.sm)
 
-				// should go back to lobby
-				// workaround for now
-				new_state = ServerGameStateStartingNewMatch
-				s.wait_time = wait_time
-				s.Broadcast(packet, event)
+				new_state = ServerGameStateWaitingInLobby
+				s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
+
+				packet := Packet{PacketType: PacketTypeBackToLobby}
+				s.Broadcast(packet, []byte{})
 			} else {
 				packet := Packet{PacketType: PacketTypeNewRound}
 				spawns := s.GetSpawnMap()
@@ -396,6 +445,13 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 			new_state = ServerGameStatePlaying
 			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
 			s.bm.Reset()
+
+			s.connected_players.Lock()
+			for key, value := range s.connected_players.m {
+				value.ready = NetBoolFalse
+				s.connected_players.m[key] = value
+			}
+			s.connected_players.Unlock()
 		}
 	}
 

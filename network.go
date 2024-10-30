@@ -107,6 +107,12 @@ func (c *Client) Loop(game *Game) {
 	}
 }
 
+func (c *Client) KeepAlive(game *Game) {
+	if int(game.time*100)%KEEPALIVE_INTERVAL == 0 {
+		c.Send(PacketTypeKeepAlive, []byte{})
+	}
+}
+
 func (nm *NetworkManager) GetDrawData(g *Game) {
 	if !g.nm.client.isConnected() {
 		log.Panic("tried to get draw data without being connected")
@@ -223,22 +229,29 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		game.context.new_level_time = event.Timestamp
 		go func() {
 			time.Sleep(event.Timestamp.Sub(time.Now()))
+			game.context.current_state = GameStatePlaying
 			game.tank.Respawn(spawn)
 			game.bm.Reset()
 		}()
 	case PacketTypeNewMatch:
 		event := NewMatchEvent{}
 		err := dec.Decode(&event)
-		for k := range c.wins {
-			c.wins[k] = 0
-		}
 		if err != nil {
 			log.Panic("error decoding spawn map", err)
 		}
+		go func() {
+			time.Sleep(event.Timestamp.Sub(time.Now()))
+			for k := range c.wins {
+				c.wins[k] = 0
+			}
+			game.bm.Reset()
+		}()
 	case PacketTypeServerStateChanged:
 		err := dec.Decode(&c.server_state)
 		if err != nil {
 			log.Panic("error decoding new server state")
 		}
+	case PacketTypeBackToLobby:
+		game.context.current_state = GameStateLobby
 	}
 }

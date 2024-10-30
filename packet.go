@@ -50,6 +50,7 @@ const (
 	PacketTypeServerStateChanged
 	PacketTypeNewRound
 	PacketTypeNewMatch
+	PacketTypeBackToLobby
 )
 
 func ValidatePacket(packet Packet) error {

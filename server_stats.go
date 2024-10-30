@@ -140,7 +140,7 @@ func NewMatch(sm *ServerSyncManager) Match {
 		m.Match_ID,
 		m.Start_time.Format(time.RFC3339),
 		sql.NullString{},
-		m.Winner_ID)
+		sql.NullString{})
 	if err != nil {
 		log.Panic(err)
 	}

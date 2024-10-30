@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -44,8 +45,8 @@ type DrawData struct {
 type GameStateEnum int
 
 const (
-	GameStatePlaying GameStateEnum = iota
-	GameStateLobby
+	GameStateLobby GameStateEnum = iota
+	GameStatePlaying
 	GameStateMainMenu
 )
 
@@ -201,6 +202,12 @@ func (g *Game) UpdateGameplay() error {
 }
 
 func (g *Game) UpdateLobby() error {
+	g.nm.client.KeepAlive(g)
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		g.nm.client.Send(PacketTypeClientToggleReady, []byte{})
+	}
+
 	return nil
 }
 
@@ -266,7 +273,22 @@ func (g *Game) DrawGameplay(screen *ebiten.Image) {
 
 }
 
+func PlayerReadyString(n uint) string {
+	if NetBoolify(n) {
+		return "ready!"
+	}
+	return "not ready!"
+}
+
 func (g *Game) DrawLobby(screen *ebiten.Image) {
+	for i, player := range g.context.player_updates {
+		textOp := text.DrawOptions{}
+		msg := fmt.Sprintf("%s is %s", player.ID[0:6], PlayerReadyString(player.Ready))
+		fontSize := 8.
+		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i)*fontSize)
+		textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
+		text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+	}
 }
 
 func (g *Game) DrawMainMenu(screen *ebiten.Image) {
