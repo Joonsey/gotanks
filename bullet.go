@@ -191,7 +191,7 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 	defer bm.mutex.RUnlock()
 	for _, bullet := range bm.bullets {
 		x, y := g.camera.GetRelativePosition(bullet.X, bullet.Y)
-		g.draw_data = append(g.draw_data,
+		g.context.draw_data = append(g.context.draw_data,
 			DrawData{
 				sprites:   bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
 				position:  Position{x, y},

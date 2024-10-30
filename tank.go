@@ -66,14 +66,14 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
 
 	if t.Alive() {
-		g.draw_data = append(g.draw_data, DrawData{
+		g.context.draw_data = append(g.context.draw_data, DrawData{
 			sprites:   t.sprites,
 			position:  Position{x, y},
 			rotation:  t.Rotation - camera.rotation,
 			intensity: 1,
 			opacity:   1},
 		)
-		g.draw_data = append(g.draw_data, DrawData{
+		g.context.draw_data = append(g.context.draw_data, DrawData{
 			sprites:   t.turret.sprites,
 			position:  Position{x, y + 1},
 			rotation:  *t.turret.rotation,
@@ -82,11 +82,11 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 			opacity:   1},
 		)
 		if int(g.time*100)%TRACK_INTERVAL == 0 {
-			g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
+			g.context.tracks = append(g.context.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 		}
 
 	} else {
-		g.draw_data = append(g.draw_data, DrawData{
+		g.context.draw_data = append(g.context.draw_data, DrawData{
 			sprites:   t.dead_sprites,
 			position:  Position{x, y},
 			rotation:  t.Rotation - camera.rotation,

@@ -65,7 +65,7 @@ func (g *Grass) ApplyForce(x, y float64) {
 
 func (gm *GrassManager) GetDrawData(g *Game) {
 	for _, grass := range gm.grass {
-		g.draw_data = append(g.draw_data, grass.GetDrawData(g.camera, gm))
+		g.context.draw_data = append(g.context.draw_data, grass.GetDrawData(g.camera, gm))
 	}
 }
 

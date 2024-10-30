@@ -178,8 +178,8 @@ func (p *Particle) Update(game *Game) {
 
 func (pm *ParticleManager) GetDrawData(g *Game) {
 	for _, particle := range pm.particles {
-		g.draw_data = append(g.draw_data, particle.GetDrawData(g.camera))
-		g.draw_data = append(g.draw_data, particle.GetDrawShadowData(g.camera))
+		g.context.draw_data = append(g.context.draw_data, particle.GetDrawData(g.camera))
+		g.context.draw_data = append(g.context.draw_data, particle.GetDrawShadowData(g.camera))
 	}
 }
 

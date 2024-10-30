@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"image"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -45,9 +45,27 @@ type GameStateEnum int
 
 const (
 	GameStatePlaying GameStateEnum = iota
-	GameStateWaiting
-	GameStateStarting
+	GameStateLobby
+	GameStateMainMenu
 )
+
+type GameContext struct {
+	// gameplay
+	draw_data      []DrawData
+	tracks         []Track
+	player_updates []PlayerUpdate
+
+	// TODO refactor
+	new_level_time time.Time
+
+	available_servers AvailableServers
+	current_state     GameStateEnum
+	current_selection int
+	isReady           bool
+}
+
+type AvailableServers struct {
+}
 
 type Game struct {
 	tank   Tank
@@ -61,13 +79,7 @@ type Game struct {
 	camera Camera
 	time   float64
 
-	draw_data []DrawData
-	tracks    []Track
-
-	player_updates []PlayerUpdate
-
-	// TODO refactor
-	new_level_time time.Time
+	context GameContext
 }
 
 func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
@@ -128,7 +140,7 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 	count := source.Bounds().Dy() / width
 	sprites := []*ebiten.Image{}
 
-	for i := count - 1; i > 0; i-- {
+	for i := count - 1; i >= 0; i-- {
 		rect := image.Rectangle{}
 		rect.Min.X = 0
 		rect.Max.X = width
@@ -143,7 +155,7 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 // TODO refactor
 func (g *Game) DrawNewLevelTimer(screen *ebiten.Image) {
 	textOp := text.DrawOptions{}
-	t := g.new_level_time.Sub(time.Now())
+	t := g.context.new_level_time.Sub(time.Now())
 	msg := fmt.Sprintf("New round in %.2f!", max(t.Seconds(), 0))
 	fontSize := 8.
 	textOp.GeoM.Translate(RENDER_WIDTH/2, RENDER_HEIGHT-fontSize*4)
@@ -167,7 +179,7 @@ func (g *Game) GetTargetCameraPosition() Position {
 	}
 }
 
-func (g *Game) Update() error {
+func (g *Game) UpdateGameplay() error {
 	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
 	g.gm.Update(g)
@@ -176,19 +188,42 @@ func (g *Game) Update() error {
 	g.time += 0.01
 
 	tracks := []Track{}
-	for _, track := range g.tracks {
+	for _, track := range g.context.tracks {
 		track.lifetime--
 		if track.lifetime >= 0 {
 			tracks = append(tracks, track)
 		}
 	}
 
-	g.tracks = tracks
+	g.context.tracks = tracks
 
 	return nil
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
+func (g *Game) UpdateLobby() error {
+	return nil
+}
+
+func (g *Game) UpdateMainMenu() error {
+	return nil
+}
+
+func (g *Game) Update() error {
+	var err error = nil
+	switch g.context.current_state {
+	case GameStatePlaying:
+		err = g.UpdateGameplay()
+	case GameStateLobby:
+		err = g.UpdateLobby()
+	case GameStateMainMenu:
+		err = g.UpdateMainMenu()
+	default:
+		err = errors.New("invalid state")
+	}
+	return err
+}
+
+func (g *Game) DrawGameplay(screen *ebiten.Image) {
 	g.level.GetDrawData(screen, g, g.camera)
 	g.tank.GetDrawData(screen, g, g.camera)
 	g.gm.GetDrawData(g)
@@ -203,11 +238,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	}
 
-	for _, track := range g.tracks {
+	for _, track := range g.context.tracks {
 		x, y := g.camera.GetRelativePosition(track.X, track.Y)
 		offset := float64(8)
 		opacity := float32(track.lifetime) / float32(TRACK_LIFETIME)
-		g.draw_data = append(g.draw_data, DrawData{
+		g.context.draw_data = append(g.context.draw_data, DrawData{
 			sprites:   g.tank.track_sprites,
 			position:  Position{x, y - offset},
 			rotation:  track.rotation - g.camera.rotation,
@@ -216,93 +251,99 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			opacity:   opacity})
 	}
 
-	sort.Slice(g.draw_data, func(i, j int) bool {
-		i_obj := g.draw_data[i]
-		j_obj := g.draw_data[j]
+	sort.Slice(g.context.draw_data, func(i, j int) bool {
+		i_obj := g.context.draw_data[i]
+		j_obj := g.context.draw_data[j]
 		// Compare the transformed Y values
 		return i_obj.position.Y < j_obj.position.Y
 	})
 
-	for _, data := range g.draw_data {
+	for _, data := range g.context.draw_data {
 		DrawStackedSpriteDrawData(screen, data)
 	}
 
-	g.draw_data = []DrawData{}
+	g.context.draw_data = []DrawData{}
 
+}
+
+func (g *Game) DrawLobby(screen *ebiten.Image) {
+}
+
+func (g *Game) DrawMainMenu(screen *ebiten.Image) {
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	switch g.context.current_state {
+	case GameStatePlaying:
+		g.DrawGameplay(screen)
+	case GameStateLobby:
+		g.DrawLobby(screen)
+	case GameStateMainMenu:
+		g.DrawMainMenu(screen)
+	}
 }
 
 func (g *Game) Layout(screenWidth, screenHeight int) (renderWidth, renderHeight int) {
 	return RENDER_WIDTH, RENDER_HEIGHT
 }
 
-func main() {
-	ebiten.SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-	ebiten.SetWindowTitle("gotanks")
+func GameInit() *Game {
+	am := &AssetManager{}
+	am.Init("temp.json")
 
-	img, _, err := ebitenutil.NewImageFromFile("assets/sprites/stacks/tank.png")
-	if err != nil {
-		log.Fatal(err)
-	}
+	game := Game{}
+	game.am = am
 
-	dead_tank_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/stacks/tank-broken.png")
-	if err != nil {
-		log.Fatal(err)
-	}
+	tank_sprite := am.GetSprites("assets/sprites/stacks/tank.png")
+	tank_broken_sprite := am.GetSprites("assets/sprites/stacks/tank-broken.png")
+	tank_barrel_sprite := am.GetSprites("assets/sprites/stacks/tank-barrel.png")
+	track_sprite := am.GetSprites("assets/sprites/tracks.png")
 
-	turret_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/stacks/tank-barrel.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	track_img, _, err := ebitenutil.NewImageFromFile("assets/sprites/tracks.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	start_server := flag.Bool("server", false, "start server")
-	force_new_id := flag.Bool("f", false, "force new id")
-	flag.Parse()
+	//log.Println(len(track_sprite))
 
 	tank := Tank{
 		TankMinimal:   TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
-		sprites:       SplitSprites(img),
-		track_sprites: []*ebiten.Image{track_img},
-		dead_sprites:  SplitSprites(dead_tank_img),
+		sprites:       tank_sprite,
+		track_sprites: track_sprite,
+		dead_sprites:  tank_broken_sprite,
 		turret: Turret{
-			sprites: SplitSprites(turret_img),
+			sprites: tank_barrel_sprite,
 		},
 	}
 
-	game := &Game{tank: tank}
-	// this needs to be after game is constructed
-	// go does something funny when we ask for a pointer to Game
-	// and actually gives Game a copy of tank, not the same tank instance
+	game.tank = tank
 	game.tank.turret.rotation = &game.tank.Turret_rotation
-
-	game.am = &AssetManager{}
-	game.am.Init("temp.json")
-	game.sm = InitSaveManager()
-
-	if game.sm.IsFresh() || *force_new_id {
-		game.sm.data.Player_ID = uuid.New()
-		game.sm.Save()
-	}
 
 	game.camera.rotation = -46 * math.Pi / 180
 
+	game.sm = InitSaveManager()
 	game.nm = InitNetworkManager()
 	game.pm = InitParticleManager(game.am)
 	game.bm = InitBulletManager(game.nm, game.am, game.pm)
-
-	game.nm.client.Auth = game.sm.data.Player_ID
 
 	game.gm = &GrassManager{}
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)
 
 	temp_spawn_obj := game.level.spawns[0]
 	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
+	return &game
+}
 
-	//game.pm.AddParticle(Particle{particle_type: ParticleTypeTest})
+func main() {
+	ebiten.SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
+	ebiten.SetWindowTitle("gotanks")
+
+	start_server := flag.Bool("server", false, "start server")
+	force_new_id := flag.Bool("f", false, "force new id")
+	flag.Parse()
+
+	game := GameInit()
+
+	if game.sm.IsFresh() || *force_new_id {
+		game.sm.data.Player_ID = uuid.New()
+		game.sm.Save()
+	}
+	game.nm.client.Auth = game.sm.data.Player_ID
 
 	if *start_server {
 		go StartServer()

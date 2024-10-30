@@ -113,7 +113,7 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 		return
 	}
 
-	for _, player := range g.player_updates {
+	for _, player := range g.context.player_updates {
 		if nm.client.isSelf(player.ID) {
 			continue
 		}
@@ -122,7 +122,7 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 
 		x, y := g.camera.GetRelativePosition(t.X, t.Y)
 		if t.Alive() {
-			g.draw_data = append(g.draw_data,
+			g.context.draw_data = append(g.context.draw_data,
 				DrawData{
 					sprites:   g.tank.sprites,
 					position:  Position{x, y},
@@ -130,7 +130,7 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 					intensity: 1,
 					opacity:   1},
 			)
-			g.draw_data = append(g.draw_data,
+			g.context.draw_data = append(g.context.draw_data,
 				DrawData{
 					sprites:   g.tank.turret.sprites,
 					position:  Position{x, y + 1},
@@ -140,12 +140,12 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 					opacity:   1},
 			)
 			if int(g.time*100)%TRACK_INTERVAL == 0 {
-				g.tracks = append(g.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
+				g.context.tracks = append(g.context.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 			}
 		} else {
 			// TODO extrapolate dead sprites data
 			dead_sprites := g.tank.dead_sprites
-			g.draw_data = append(g.draw_data, DrawData{
+			g.context.draw_data = append(g.context.draw_data, DrawData{
 				sprites:   dead_sprites,
 				position:  Position{x, y},
 				rotation:  t.Rotation - g.camera.rotation,
@@ -172,7 +172,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 
 		game.bm.AddBullet(bullet)
 	case PacketTypeUpdatePlayers:
-		err := dec.Decode(&game.player_updates)
+		err := dec.Decode(&game.context.player_updates)
 		if err != nil {
 			log.Panic("error decoding player updates", err)
 		}
@@ -220,7 +220,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			log.Panic("could not find spawn in spawn map ", event.Spawns)
 		}
 
-		game.new_level_time = event.Timestamp
+		game.context.new_level_time = event.Timestamp
 		go func() {
 			time.Sleep(event.Timestamp.Sub(time.Now()))
 			game.tank.Respawn(spawn)

@@ -157,7 +157,7 @@ func (l *Level) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 				rel_x -= offset
 				rel_y -= offset
 				sprites := l.am.stacked_map[tile.GetTileRect()]
-				g.draw_data = append(g.draw_data, DrawData{
+				g.context.draw_data = append(g.context.draw_data, DrawData{
 					sprites:   sprites,
 					position:  Position{rel_x, rel_y},
 					rotation:  -camera.rotation,
@@ -177,7 +177,7 @@ func (l *Level) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 
 				rel_x, rel_y := camera.GetRelativePosition(i_x*SPRITE_SIZE, i_y*SPRITE_SIZE)
 				sprites := l.am.stacked_map[tile.GetTileRect()]
-				g.draw_data = append(g.draw_data, DrawData{
+				g.context.draw_data = append(g.context.draw_data, DrawData{
 					sprites:   sprites,
 					position:  Position{rel_x, rel_y},
 					rotation:  -camera.rotation,
