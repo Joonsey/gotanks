@@ -114,6 +114,19 @@ func NewKillEvent(round_id, victim_id, killer_id string) KillEvent {
 	return k
 }
 
+func (sm *ServerSyncManager) GetPlayer(id string) *Player {
+	var player Player
+	row := sm.db_handle.QueryRow("SELECT player_id, username, created_at, updated_at FROM players WHERE player_id = ?", id)
+	err := row.Scan(&player.Player_ID, &player.Username, &player.Created_at, &player.Updated_at)
+
+	if err != nil {
+		// not found
+		return nil
+	}
+
+	return &player
+}
+
 // TODO ALL SQL EXEC
 // should be goroutines
 

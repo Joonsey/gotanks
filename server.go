@@ -416,12 +416,18 @@ func (s *Server) AuthorizePacket(packet_data PacketData) error {
 	}
 
 	if s.accepts_new_connections {
-		player := NewPlayer(auth)
+		var player Player
+		player_ptr := s.sm.GetPlayer(auth)
+		if player_ptr != nil {
+			player = *player_ptr
+			log.Println("player joined:  ", player.Player_ID)
+		} else {
+			player = NewPlayer(auth)
+			log.Println("made new player:", player.Player_ID)
+		}
+
 		go player.Update(s.sm)
 		s.connected_players.m[auth] = ConnectedPlayer{addr: &packet_data.Addr, player: player}
-
-		// added and authorized
-		log.Println("accepted new connection")
 		return nil
 	}
 
