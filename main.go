@@ -299,8 +299,6 @@ func GameInit() *Game {
 	tank_barrel_sprite := am.GetSprites("assets/sprites/stacks/tank-barrel.png")
 	track_sprite := am.GetSprites("assets/sprites/tracks.png")
 
-	//log.Println(len(track_sprite))
-
 	tank := Tank{
 		TankMinimal:   TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
 		sprites:       tank_sprite,
