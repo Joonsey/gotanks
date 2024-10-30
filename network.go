@@ -27,7 +27,7 @@ type Client struct {
 	is_connected   bool
 	server_state   ServerGameStateEnum
 	wins           map[string]int
-	Auth           [16]byte
+	Auth           *[16]byte
 }
 
 type NetworkManager struct {
@@ -56,7 +56,7 @@ func InitNetworkManager() *NetworkManager {
 }
 
 func (c *Client) isSelf(id string) bool {
-	return AuthToString(c.Auth) == id
+	return AuthToString(*c.Auth) == id
 }
 
 func (c *Client) Send(packet_type PacketType, data interface{}) error {
@@ -65,7 +65,7 @@ func (c *Client) Send(packet_type PacketType, data interface{}) error {
 	}
 	packet := Packet{}
 	packet.PacketType = packet_type
-	data_bytes, err := SerializePacket(packet, c.Auth, data)
+	data_bytes, err := SerializePacket(packet, *c.Auth, data)
 
 	if err != nil {
 		return err
@@ -215,7 +215,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			c.wins[event.Winner]++
 		}
 
-		spawn, ok := event.Spawns[AuthToString(c.Auth)]
+		spawn, ok := event.Spawns[AuthToString(*c.Auth)]
 		if !ok {
 			log.Panic("could not find spawn in spawn map ", event.Spawns)
 		}

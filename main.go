@@ -321,6 +321,8 @@ func GameInit() *Game {
 	game.pm = InitParticleManager(game.am)
 	game.bm = InitBulletManager(game.nm, game.am, game.pm)
 
+	game.nm.client.Auth = &game.sm.data.Player_ID
+
 	game.gm = &GrassManager{}
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)
 
@@ -343,7 +345,6 @@ func main() {
 		game.sm.data.Player_ID = uuid.New()
 		game.sm.Save()
 	}
-	game.nm.client.Auth = game.sm.data.Player_ID
 
 	if *start_server {
 		go StartServer()
