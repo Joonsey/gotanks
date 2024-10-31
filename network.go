@@ -7,6 +7,9 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -28,6 +31,16 @@ type Client struct {
 	server_state   ServerGameStateEnum
 	wins           map[string]int
 	Auth           *[16]byte
+
+	time_last_packet time.Time
+}
+
+type AvailableServer struct {
+	Ip   string
+	Port int
+
+	Player_count int
+	Max_players  int
 }
 
 type NetworkManager struct {
@@ -50,8 +63,28 @@ func InitNetworkManager() *NetworkManager {
 	nm.client.wins = make(map[string]int)
 	nm.client.conn = conn
 
-	nm.client.target = &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: SERVERPORT}
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		if nm.client.isConnected() {
+			nm.client.Disconnect()
+		}
+		os.Exit(0)
+	}()
 
+	go func() {
+		for {
+			time.Sleep(time.Second * 2)
+			if nm.client.isConnected() {
+				t := time.Now().Add(-time.Second * 5)
+				if nm.client.time_last_packet.Before(t) {
+					log.Println("no response for 5s, considering connection closed")
+					nm.client.Disconnect()
+				}
+			}
+		}
+	}()
 	return &nm
 }
 
@@ -76,11 +109,6 @@ func (c *Client) Send(packet_type PacketType, data interface{}) error {
 }
 
 func (c *Client) Listen() {
-	if c.isConnected() {
-		log.Panic("attempted to 'Listen' while already connected")
-	}
-
-	c.is_connected = true
 	buf := make([]byte, BUFFER_SIZE)
 	for {
 		n, addr, err := c.conn.ReadFromUDP(buf)
@@ -98,13 +126,37 @@ func (c *Client) Listen() {
 	}
 }
 
+func (c *Client) Connect(ip string, port int) {
+	if c.isConnected() {
+		log.Panic("tried to connect while already connected")
+	}
+	c.target = &net.UDPAddr{IP: net.ParseIP(ip), Port: port}
+	c.is_connected = true
+}
+
+func (c *Client) Disconnect() {
+	if !c.isConnected() {
+		log.Panic("tried to disconnect while not connected")
+	}
+	c.Send(PacketTypeDisconnect, "disconnect")
+	c.is_connected = false
+	c.target = nil
+}
+
 func (c *Client) Loop(game *Game) {
 	for {
 		select {
 		case packet_data := <-c.packet_channel:
 			c.HandlePacket(packet_data, game)
+			c.time_last_packet = time.Now()
 		}
 	}
+}
+
+func (c *Client) GetServerList(game *Game) []AvailableServer {
+	// TODO
+	return []AvailableServer{
+		AvailableServer{Ip: "127.0.0.122", Port: 2022, Player_count: 1, Max_players: 2}, AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Player_count: 1, Max_players: 2}}
 }
 
 func (c *Client) KeepAlive(game *Game) {

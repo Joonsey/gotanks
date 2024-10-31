@@ -194,7 +194,10 @@ func (s *Server) HandlePacket(packet_data PacketData) {
 
 		s.connected_players.m[AuthToString(packet_data.Packet.Auth)] = player
 		s.connected_players.Unlock()
-
+	case PacketTypeDisconnect:
+		s.connected_players.Lock()
+		delete(s.connected_players.m, AuthToString(packet_data.Packet.Auth))
+		s.connected_players.Unlock()
 	}
 }
 
