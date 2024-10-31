@@ -2,16 +2,17 @@ package game
 
 import (
 	"database/sql"
-	"fmt"
+	//"fmt"
 	"log"
-	"os"
-	"path/filepath"
+	//"os"
+	//"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
-	"github.com/tursodatabase/go-libsql"
-)
+	/*
+		"github.com/joho/godotenv"
+		"github.com/tursodatabase/go-libsql"
+	*/)
 
 type Player struct {
 	Player_ID  string    `db:"player_id"`
@@ -50,12 +51,13 @@ type ServerStats struct {
 
 type ServerSyncManager struct {
 	stats     ServerStats
-	connector *libsql.Connector
+	//connector *libsql.Connector
 
 	temp_dir  string
-	db_handle *sql.DB
+	//db_handle *sql.DB
 }
 
+/*
 func InitStatsManager() *ServerSyncManager {
 	sm := ServerSyncManager{}
 	err := godotenv.Load(".env")
@@ -223,4 +225,72 @@ func (m *Match) CompleteMatch(sm *ServerSyncManager) {
 	if err != nil {
 		log.Panic(err)
 	}
+}
+*/
+
+func InitStatsManager() *ServerSyncManager {
+	return &ServerSyncManager{}
+}
+
+func (sm *ServerSyncManager) DeInit() {
+	log.Println("succesfully de-initing the sync manager")
+}
+
+func NewPlayer(addr string) Player {
+	p := Player{}
+	p.Player_ID = addr
+	p.Created_at = time.Now()
+	p.Updated_at = time.Now()
+	p.Username = "test_user"
+
+	return p
+}
+
+func NewKillEvent(round_id, victim_id, killer_id string) KillEvent {
+	k := KillEvent{}
+	k.Kill_ID = uuid.NewString()
+	k.Killer_ID = killer_id
+	k.Round_ID = round_id
+	k.Victim_ID = victim_id
+	k.Timestamp = time.Now()
+	return k
+}
+
+func (sm *ServerSyncManager) GetPlayer(id string) *Player {
+	return nil
+}
+
+func NewMatch(sm *ServerSyncManager) Match {
+	m := Match{}
+	m.Match_ID = uuid.NewString()
+	m.Start_time = time.Now()
+	return m
+}
+
+func NewRound(m Match, level LevelEnum, sm *ServerSyncManager) Round {
+	r := Round{}
+	r.Round_ID = uuid.NewString()
+	r.Match_ID = m.Match_ID
+	r.Level = level
+	return r
+}
+
+func (k *KillEvent) Sync(sm *ServerSyncManager) {
+}
+
+func (p *Player) Update(sm *ServerSyncManager) {
+	p.Updated_at = time.Now()
+}
+
+func (r *Round) CompleteRound(sm *ServerSyncManager) {
+	if !r.Winner_ID.Valid {
+		log.Panic("winner id can not be null")
+	}
+}
+
+func (m *Match) CompleteMatch(sm *ServerSyncManager) {
+	if !m.Winner_ID.Valid {
+		log.Panic("winner id can not be null")
+	}
+	m.End_time = time.Now()
 }
