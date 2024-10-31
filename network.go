@@ -18,8 +18,7 @@ const (
 	BUFFER_SIZE = 2048
 
 	MEDIATOR_PORT = 8080
-	//MEDIATOR_ADDR = "84.215.22.166"
-	MEDIATOR_ADDR = "127.0.0.1"
+	MEDIATOR_ADDR = "84.215.22.166"
 
 	// update_interval = fps / desired ticks per second
 	// 3 = 60/20
