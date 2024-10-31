@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"bytes"
@@ -39,8 +39,6 @@ const (
 	PacketTypeMatchHost
 	PacketTypeMatchStart
 	PacketTypeMatchConnect
-	PacketTypeNegotiate
-	PacketTypeKeepAlive
 	PacketTypeDisconnect
 	PacketTypeUpdateCurrentPlayer
 	PacketTypeUpdatePlayers
@@ -51,6 +49,11 @@ const (
 	PacketTypeNewRound
 	PacketTypeNewMatch
 	PacketTypeBackToLobby
+
+	PacketTypeAvailableHosts
+	PacketTypeNegotiate
+	PacketTypeKeepAlive
+	PacketTypeUpdateMediator
 )
 
 func ValidatePacket(packet Packet) error {

@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"bytes"
@@ -17,6 +17,10 @@ const (
 	SERVERPORT  = 7707
 	BUFFER_SIZE = 2048
 
+	MEDIATOR_PORT = 8080
+	//MEDIATOR_ADDR = "84.215.22.166"
+	MEDIATOR_ADDR = "127.0.0.1"
+
 	// update_interval = fps / desired ticks per second
 	// 3 = 60/20
 	UPDATE_INTERVAL = 3
@@ -33,6 +37,8 @@ type Client struct {
 	Auth           *[16]byte
 
 	time_last_packet time.Time
+
+	available_servers []AvailableServer
 }
 
 type AvailableServer struct {
@@ -78,11 +84,19 @@ func InitNetworkManager() *NetworkManager {
 		for {
 			if nm.client.isConnected() {
 				time.Sleep(time.Second * 2)
-				t := time.Now().Add(-time.Second * 5)
+				t := time.Now().Add(-time.Second * 7)
 				if nm.client.time_last_packet.Before(t) {
 					log.Println("no response for 5s, considering connection closed")
 					nm.client.Disconnect()
 				}
+			} else {
+				time.Sleep(time.Second * 2)
+				data_bytes, err := SerializePacket(Packet{PacketType: PacketTypeAvailableHosts}, *nm.client.Auth, []byte{})
+				if err != nil {
+					log.Println("unable to serialize packet, but we don't break for that reason")
+					continue
+				}
+				nm.client.conn.WriteToUDP(data_bytes, &net.UDPAddr{IP: net.ParseIP(MEDIATOR_ADDR), Port: MEDIATOR_PORT})
 			}
 		}
 	}()
@@ -127,11 +141,15 @@ func (c *Client) Listen() {
 	}
 }
 
-func (c *Client) Connect(ip string, port int) {
+func (c *Client) Connect(server AvailableServer) {
 	if c.isConnected() {
 		log.Panic("tried to connect while already connected")
 	}
-	c.target = &net.UDPAddr{IP: net.ParseIP(ip), Port: port}
+	c.target = &net.UDPAddr{IP: net.ParseIP(server.Ip), Port: server.Port}
+
+	data := ReconcilliationData{Name: server.Name}
+	data_bytes, _ := SerializePacket(Packet{PacketType: PacketTypeMatchConnect}, *c.Auth, data)
+	c.conn.WriteToUDP(data_bytes, &net.UDPAddr{IP: net.ParseIP(MEDIATOR_ADDR), Port: MEDIATOR_PORT})
 	c.is_connected = true
 }
 
@@ -149,15 +167,16 @@ func (c *Client) Loop(game *Game) {
 		select {
 		case packet_data := <-c.packet_channel:
 			c.HandlePacket(packet_data, game)
-			c.time_last_packet = time.Now()
+			if packet_data.Packet.PacketType != PacketTypeAvailableHosts {
+				c.time_last_packet = time.Now()
+			}
 		}
 	}
 }
 
 func (c *Client) GetServerList(game *Game) []AvailableServer {
 	// TODO
-	return []AvailableServer{
-		AvailableServer{Ip: "127.0.0.122", Port: 2022, Player_count: 1, Max_players: 2, Name: "Apple"}, AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Player_count: 1, Max_players: 2, Name: "Banana"}}
+	return c.available_servers
 }
 
 func (c *Client) KeepAlive(game *Game) {
@@ -306,5 +325,10 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		}
 	case PacketTypeBackToLobby:
 		game.context.current_state = GameStateLobby
+	case PacketTypeAvailableHosts:
+		err := dec.Decode(&c.available_servers)
+		if err != nil {
+			log.Panic("error decoding new server state")
+		}
 	}
 }

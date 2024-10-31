@@ -1,8 +1,7 @@
-package main
+package game
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"image"
 	"log"
@@ -238,7 +237,7 @@ func (g *Game) UpdateServerPicking() error {
 			g.context.current_server = nil
 		} else if g.context.current_selection < len(g.context.available_servers)+1 {
 			server := g.context.available_servers[g.context.current_selection-1]
-			g.nm.client.Connect(server.Ip, server.Port)
+			g.nm.client.Connect(server)
 			g.context.current_server = &server
 			g.context.current_state = GameStateLobby
 		}
@@ -247,10 +246,11 @@ func (g *Game) UpdateServerPicking() error {
 }
 
 func (g *Game) HostServer() {
-	go StartServer()
-	g.nm.client.Connect("127.0.0.1", SERVERPORT)
+	name := CreateServerName()
+	go StartServer(name)
 	g.context.current_state = GameStateLobby
-	g.context.current_server = &AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Name: "Localhost", Player_count: 0, Max_players: 2}
+	g.context.current_server = &AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Name: name, Player_count: 0, Max_players: 2}
+	g.nm.client.Connect(*g.context.current_server)
 }
 
 func (g *Game) UpdateMainMenu() error {
@@ -427,6 +427,15 @@ func (g *Game) Layout(screenWidth, screenHeight int) (renderWidth, renderHeight 
 	return RENDER_WIDTH, RENDER_HEIGHT
 }
 
+func (g *Game) SaveIsFresh() bool {
+	return g.sm.IsFresh()
+}
+
+func (g *Game) GenerateNewPlayerId() {
+	g.sm.data.Player_ID = uuid.New()
+	g.sm.Save()
+}
+
 func GameInit() *Game {
 	am := &AssetManager{}
 	am.Init("temp.json")
@@ -468,32 +477,9 @@ func GameInit() *Game {
 	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
 
 	game.context.current_state = GameStateMainMenu
-	return &game
-}
-
-func main() {
-	ebiten.SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-	ebiten.SetWindowTitle("gotanks")
-
-	start_server := flag.Bool("server", false, "start server")
-	force_new_id := flag.Bool("f", false, "force new id")
-	flag.Parse()
-
-	game := GameInit()
-
-	if game.sm.IsFresh() || *force_new_id {
-		game.sm.data.Player_ID = uuid.New()
-		game.sm.Save()
-	}
-
-	if *start_server {
-		game.HostServer()
-	}
 
 	go game.nm.client.Listen()
-	go game.nm.client.Loop(game)
+	go game.nm.client.Loop(&game)
 
-	if err := ebiten.RunGame(game); err != nil {
-		log.Fatal(err)
-	}
+	return &game
 }

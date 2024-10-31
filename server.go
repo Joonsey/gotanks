@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -74,6 +75,15 @@ type NewMatchEvent struct {
 	Timestamp time.Time
 }
 
+func CreateServerName() string {
+	names := []string{
+	"apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew",
+	"kiwi", "lemon", "mango", "nectarine", "orange", "papaya", "quince", "raspberry",
+	"strawberry", "tangerine", "ugli", "vanilla", "watermelon", "xigua", "yam", "zucchini",
+	}
+	return names[rand.Intn(len(names))]
+}
+
 type Server struct {
 	conn                    *net.UDPConn
 	accepts_new_connections bool
@@ -86,8 +96,11 @@ type Server struct {
 	level Level
 	state ServerGameStateEnum
 	sm    *ServerSyncManager
+	Name  string
 
 	wait_time time.Time
+
+	mediator_addr *net.UDPAddr
 
 	// temporary until db
 	round_id int
@@ -95,7 +108,7 @@ type Server struct {
 	kill_id  int
 }
 
-func StartServer() {
+func StartServer(name string) {
 	server := Server{}
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: SERVERPORT})
 	if err != nil {
@@ -112,10 +125,14 @@ func StartServer() {
 	server.level = loadLevel("assets/tiled/level_1.tmx", nil, nil)
 	server.bm.bullets = make(map[string]*Bullet)
 
+	server.mediator_addr = &net.UDPAddr{IP: net.ParseIP(MEDIATOR_ADDR), Port: MEDIATOR_PORT}
+
 	server.sm = InitStatsManager()
+	server.Name = name
 
 	go server.Listen()
 	go server.StartHandlingPackets()
+	server.TellMediator()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -146,6 +163,22 @@ func (s *Server) Listen() {
 		packet_data := PacketData{packet, data, *addr}
 		s.packet_channel <- packet_data
 	}
+}
+
+func (s *Server) UpdateMediator() {
+	data := AvailableServer{Player_count: len(s.connected_players.m), Max_players: 4, Name: s.Name}
+	raw_data, err := SerializePacket(Packet{PacketType: PacketTypeUpdateMediator}, [16]byte{}, data)
+	if err != nil {
+		log.Panic("failed to serialize packet")
+	}
+	s.conn.WriteToUDP(raw_data, s.mediator_addr)
+}
+func (s *Server) KeepAliveMediator() {
+	raw_data, err := SerializePacket(Packet{PacketType: PacketTypeKeepAlive}, [16]byte{}, []byte{})
+	if err != nil {
+		log.Panic("failed to serialize packet")
+	}
+	s.conn.WriteToUDP(raw_data, s.mediator_addr)
 }
 
 func (s *Server) Broadcast(packet Packet, data interface{}) {
@@ -198,6 +231,17 @@ func (s *Server) HandlePacket(packet_data PacketData) {
 		s.connected_players.Lock()
 		delete(s.connected_players.m, AuthToString(packet_data.Packet.Auth))
 		s.connected_players.Unlock()
+	case PacketTypeMatchConnect:
+		var addr net.UDPAddr
+		err := dec.Decode(&addr)
+		if err != nil {
+			log.Panic("error during decoding", err)
+		}
+		data_bytes, err := SerializePacket(Packet{PacketType: PacketTypeMatchConnect}, [16]byte{}, []byte{})
+		if err != nil {
+			log.Panic("error during serializing", err)
+		}
+		s.conn.WriteToUDP(data_bytes, &addr)
 	}
 }
 
@@ -237,6 +281,8 @@ func (s *Server) UpdateServerLogic() {
 		})
 		s.connected_players.RUnlock()
 		s.Broadcast(packet, players)
+		s.KeepAliveMediator()
+		s.UpdateMediator()
 	}
 
 	s.bm.Update(&s.level, nil)
@@ -367,6 +413,16 @@ func (s *Server) StartNewRound() *Round {
 	return &round
 }
 
+
+func (s *Server) TellMediator() {
+	data := ReconcilliationData{Name: s.Name}
+	raw_data, err := SerializePacket(Packet{PacketType: PacketTypeMatchHost}, [16]byte{}, data)
+	if err != nil {
+		log.Panic("failed to serialize packet")
+	}
+	s.conn.WriteToUDP(raw_data, s.mediator_addr)
+}
+
 func (s *Server) CheckServerState() ServerGameStateEnum {
 	alive, total := s.GetAlivePlayers()
 	after_grace_period := time.Now().After(s.wait_time)
@@ -465,7 +521,11 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 func (s *Server) AuthorizePacket(packet_data PacketData) error {
 	s.connected_players.Lock()
 	defer s.connected_players.Unlock()
+	// this is the mediator server, typically
+	if packet_data.Packet.Auth == [16]byte{} {return nil}
+
 	auth := AuthToString(packet_data.Packet.Auth)
+
 
 	for key, _ := range s.connected_players.m {
 		if key == auth {
