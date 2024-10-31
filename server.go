@@ -77,9 +77,10 @@ type NewMatchEvent struct {
 
 func CreateServerName() string {
 	names := []string{
-	"apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew",
-	"kiwi", "lemon", "mango", "nectarine", "orange", "papaya", "quince", "raspberry",
-	"strawberry", "tangerine", "ugli", "vanilla", "watermelon", "xigua", "yam", "zucchini",
+		"apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew",
+		"kiwi", "lemon", "mango", "nectarine", "orange", "papaya", "quince", "raspberry",
+		"strawberry", "tangerine", "ugli", "vanilla", "watermelon", "xigua", "yam", "zucchini",
+		"brick", "walls", "yellow", "red", "blue", "purple", "orange", "funny", "warm", "cold",
 	}
 	return names[rand.Intn(len(names))]
 }
@@ -101,11 +102,6 @@ type Server struct {
 	wait_time time.Time
 
 	mediator_addr *net.UDPAddr
-
-	// temporary until db
-	round_id int
-	match_id int
-	kill_id  int
 }
 
 func StartServer(name string) {
@@ -413,7 +409,6 @@ func (s *Server) StartNewRound() *Round {
 	return &round
 }
 
-
 func (s *Server) TellMediator() {
 	data := ReconcilliationData{Name: s.Name}
 	raw_data, err := SerializePacket(Packet{PacketType: PacketTypeMatchHost}, [16]byte{}, data)
@@ -522,10 +517,11 @@ func (s *Server) AuthorizePacket(packet_data PacketData) error {
 	s.connected_players.Lock()
 	defer s.connected_players.Unlock()
 	// this is the mediator server, typically
-	if packet_data.Packet.Auth == [16]byte{} {return nil}
+	if packet_data.Packet.Auth == [16]byte{} {
+		return nil
+	}
 
 	auth := AuthToString(packet_data.Packet.Auth)
-
 
 	for key, _ := range s.connected_players.m {
 		if key == auth {
