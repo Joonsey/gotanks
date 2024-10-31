@@ -38,6 +38,7 @@ type Client struct {
 type AvailableServer struct {
 	Ip   string
 	Port int
+	Name string
 
 	Player_count int
 	Max_players  int
@@ -75,8 +76,8 @@ func InitNetworkManager() *NetworkManager {
 
 	go func() {
 		for {
-			time.Sleep(time.Second * 2)
 			if nm.client.isConnected() {
+				time.Sleep(time.Second * 2)
 				t := time.Now().Add(-time.Second * 5)
 				if nm.client.time_last_packet.Before(t) {
 					log.Println("no response for 5s, considering connection closed")
@@ -156,7 +157,7 @@ func (c *Client) Loop(game *Game) {
 func (c *Client) GetServerList(game *Game) []AvailableServer {
 	// TODO
 	return []AvailableServer{
-		AvailableServer{Ip: "127.0.0.122", Port: 2022, Player_count: 1, Max_players: 2}, AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Player_count: 1, Max_players: 2}}
+		AvailableServer{Ip: "127.0.0.122", Port: 2022, Player_count: 1, Max_players: 2, Name: "Apple"}, AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Player_count: 1, Max_players: 2, Name: "Banana"}}
 }
 
 func (c *Client) KeepAlive(game *Game) {

@@ -64,6 +64,8 @@ type GameContext struct {
 	current_state     GameStateEnum
 	current_selection int
 	isReady           bool
+
+	current_server *AvailableServer
 }
 
 type Game struct {
@@ -233,18 +235,45 @@ func (g *Game) UpdateServerPicking() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		if g.context.current_selection == 0 {
 			g.context.current_state = GameStateMainMenu
+			g.context.current_server = nil
 		} else if g.context.current_selection < len(g.context.available_servers)+1 {
 			server := g.context.available_servers[g.context.current_selection-1]
 			g.nm.client.Connect(server.Ip, server.Port)
+			g.context.current_server = &server
 			g.context.current_state = GameStateLobby
 		}
 	}
 	return nil
 }
 
+func (g *Game) HostServer() {
+	go StartServer()
+	g.nm.client.Connect("127.0.0.1", SERVERPORT)
+	g.context.current_state = GameStateLobby
+	g.context.current_server = &AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Name: "Localhost", Player_count: 0, Max_players: 2}
+}
+
 func (g *Game) UpdateMainMenu() error {
-	// temp
-	g.context.current_state = GameStateServerPicking
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		g.context.current_selection++
+		if g.context.current_selection >= 2 {
+			g.context.current_selection = 0
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
+		g.context.current_selection--
+		if g.context.current_selection < 0 {
+			g.context.current_selection = 1
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		if g.context.current_selection == 0 {
+			g.context.current_state = GameStateServerPicking
+		}
+		if g.context.current_selection == 1 {
+			g.HostServer()
+		}
+	}
 	return nil
 }
 
@@ -316,25 +345,53 @@ func PlayerReadyString(n uint) string {
 }
 
 func (g *Game) DrawLobby(screen *ebiten.Image) {
+	if g.context.current_server == nil {
+		log.Panic("current server is nil")
+	}
+	fontSize := 8.
+
+	textOp := text.DrawOptions{}
+	msg := fmt.Sprintf("server name: '%s'", g.context.current_server.Name)
+	textOp.GeoM.Translate(RENDER_WIDTH/2, float64(1)*fontSize)
+	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
+	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+
 	for i, player := range g.context.player_updates {
 		textOp := text.DrawOptions{}
 		msg := fmt.Sprintf("%s is %s", player.ID[0:6], PlayerReadyString(player.Ready))
-		fontSize := 8.
-		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i)*fontSize)
+		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i+3)*fontSize)
 		textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
 		text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 	}
 }
 
 func (g *Game) DrawMainMenu(screen *ebiten.Image) {
+	textOp := text.DrawOptions{}
+	msg := "  join game"
+	if g.context.current_selection == 0 {
+		msg = "* join game"
+	}
+	fontSize := 8.
+	textOp.GeoM.Translate(RENDER_WIDTH/2, RENDER_HEIGHT/2+fontSize*3)
+	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
+	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+
+	textOp = text.DrawOptions{}
+	msg = "  host"
+	if g.context.current_selection == 1 {
+		msg = "* host"
+	}
+	textOp.GeoM.Translate(RENDER_WIDTH/2, RENDER_HEIGHT/2+fontSize*5)
+	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
+	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 }
 
 func (g *Game) DrawServerPicking(screen *ebiten.Image) {
 	for i, server := range g.context.available_servers {
 		textOp := text.DrawOptions{}
-		msg := fmt.Sprintf("  %d/%d", server.Player_count, server.Max_players)
+		msg := fmt.Sprintf("  %-10s| %d/%d", server.Name, server.Player_count, server.Max_players)
 		if i+1 == g.context.current_selection {
-			msg = fmt.Sprintf("* %d/%d", server.Player_count, server.Max_players)
+			msg = fmt.Sprintf("* %-10s| %d/%d", server.Name, server.Player_count, server.Max_players)
 		}
 		fontSize := 8.
 		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i)*fontSize)
@@ -410,7 +467,7 @@ func GameInit() *Game {
 	temp_spawn_obj := game.level.spawns[0]
 	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
 
-	game.context.current_state = GameStateServerPicking
+	game.context.current_state = GameStateMainMenu
 	return &game
 }
 
@@ -430,7 +487,7 @@ func main() {
 	}
 
 	if *start_server {
-		go StartServer()
+		game.HostServer()
 	}
 
 	go game.nm.client.Listen()
