@@ -285,6 +285,19 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 					max_t:         60 * n,
 				})
 		}
+		particle_count = float64(seed % 3)
+		for i := range int(particle_count) + 1 {
+			// TODO seed this so it can be reasonably consistent across clients
+			n := rand.Float64() + 1
+			game.pm.AddParticle(
+				Particle{Position: bullet.Position,
+					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
+					sprites:       particle_sprite,
+					velocity:      n * .2,
+					particle_type: ParticleTypeDebrisFromTank,
+					max_t:         45 * n,
+				})
+		}
 
 		delete(game.bm.bullets, hit.Bullet_ID)
 	case PacketTypeNewRound:
