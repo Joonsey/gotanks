@@ -91,10 +91,12 @@ const (
 
 var player_palette = []color.Color{
 	color.RGBA{R: 255, G: 85, B: 85, A: alpha},
-	color.RGBA{R: 85, G: 85, B: 255, A: alpha},
+	color.RGBA{R: 255, G: 85, B: 255, A: alpha},
 	color.RGBA{R: 85, G: 255, B: 85, A: alpha},
 	color.RGBA{R: 255, G: 255, B: 85, A: alpha},
 }
+
+var PLAYER_COLOR = color.RGBA{R: 85, G: 85, B: 255, A: alpha}
 
 func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 	if data.r != 0 || data.g != 0 || data.b != 0 {
@@ -304,28 +306,31 @@ func (g *Game) UpdateMainMenu() error {
 	return nil
 }
 
-func DrawPlayerUI(screen *ebiten.Image, player PlayerUpdate, num_players int, wins int, count int, font *text.GoTextFaceSource) {
+func (g *Game) DrawPlayerUI(screen *ebiten.Image, player PlayerUpdate, num_players int, wins int, count int, font *text.GoTextFaceSource) {
+	clr := player_palette[count%len(player_palette)]
+	if g.nm.client.isSelf(player.ID) {
+		clr = PLAYER_COLOR
+	}
+	width := RENDER_WIDTH / num_players
+	fontSize := 8.
+	vector.DrawFilledRect(screen, float32(width*count), 0, float32(width), float32(fontSize)*2, clr, true)
+
 	textOp := text.DrawOptions{}
 	name := player.ID
 	if len(player.ID) > 6 {
 		name = player.ID[0:6]
 	}
 	msg := fmt.Sprintf("%-6s | %d", name, wins)
-	fontSize := 8.
-
-	width := RENDER_WIDTH / num_players
 
 	textOp.GeoM.Translate(float64(width*count+(width/2)), fontSize*2)
 	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, -fontSize*1.5)
 
-	clr := player_palette[count%len(player_palette)]
-	vector.DrawFilledRect(screen, float32(width*count), 0, float32(width), float32(fontSize)*2, clr, true)
 	text.Draw(screen, msg, &text.GoTextFace{Source: font, Size: fontSize}, &textOp)
 }
 
 func (g *Game) DrawUI(screen *ebiten.Image) {
 	for count, player := range g.context.player_updates {
-		DrawPlayerUI(screen, player, len(g.context.player_updates), g.nm.client.wins[player.ID], count, g.am.new_level_font)
+		g.DrawPlayerUI(screen, player, len(g.context.player_updates), g.nm.client.wins[player.ID], count, g.am.new_level_font)
 	}
 }
 
@@ -348,7 +353,7 @@ func (g *Game) Update() error {
 
 func (g *Game) DrawGameplay(screen *ebiten.Image) {
 	g.level.GetDrawData(screen, g, g.camera)
-	g.tank.GetDrawData(screen, g, g.camera)
+	g.tank.GetDrawData(screen, g, g.camera, PLAYER_COLOR)
 	g.gm.GetDrawData(g)
 	g.bm.GetDrawData(g)
 	g.pm.GetDrawData(g)

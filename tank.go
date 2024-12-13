@@ -64,7 +64,7 @@ func (t *TankMinimal) Kill() {
 	t.Life = -1
 }
 
-func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
+func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr color.Color) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
 
 	if t.Alive() {
@@ -86,18 +86,16 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 		if int(g.time*100)%TRACK_INTERVAL == 0 {
 			g.context.tracks = append(g.context.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 		}
-
 		radius := 20
 		radi_sprite := ebiten.NewImage(radius, radius)
-		vector.StrokeCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/2, 2, color.White, true)
+		vector.StrokeCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/2, 2, clr, true)
 		g.context.draw_data = append(g.context.draw_data, DrawData{
 			sprites:   []*ebiten.Image{radi_sprite},
 			position:  Position{x, y - 1},
-			rotation:  *t.turret.rotation,
+			rotation:  t.Rotation,
 			intensity: 1,
 			offset:    Position{0, 1},
-			opacity:   1},
-		)
+			opacity:   1})
 
 	} else {
 		g.context.draw_data = append(g.context.draw_data, DrawData{

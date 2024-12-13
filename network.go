@@ -11,6 +11,9 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const (
@@ -191,7 +194,7 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 		return
 	}
 
-	for _, player := range g.context.player_updates {
+	for i, player := range g.context.player_updates {
 		if nm.client.isSelf(player.ID) {
 			continue
 		}
@@ -220,6 +223,17 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 			if int(g.time*100)%TRACK_INTERVAL == 0 {
 				g.context.tracks = append(g.context.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 			}
+			radius := 20
+			radi_sprite := ebiten.NewImage(radius, radius)
+			vector.StrokeCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/2, 2, player_palette[i%len(player_palette)], true)
+			g.context.draw_data = append(g.context.draw_data, DrawData{
+				sprites:   []*ebiten.Image{radi_sprite},
+				position:  Position{x, y - 1},
+				rotation:  t.Rotation,
+				intensity: 1,
+				offset:    Position{0, 1},
+				opacity:   1},
+			)
 		} else {
 			// TODO extrapolate dead sprites data
 			dead_sprites := g.tank.dead_sprites
