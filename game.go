@@ -134,8 +134,9 @@ func DrawStackedSpriteWithColor(source []*ebiten.Image, screen *ebiten.Image, x,
 		// moving by half-size to rotate around the center
 		op.GeoM.Translate(-half_size, -half_size)
 		op.GeoM.Rotate(rotation - 90*math.Pi/180)
-		// moving back
-		op.GeoM.Translate(half_size, half_size)
+
+		// experimenting with not moving back, drawing around center instead
+		//op.GeoM.Translate(half_size, half_size)
 
 		op.GeoM.Translate(x, y-float64(i))
 		scale := ebiten.ColorScale{}
