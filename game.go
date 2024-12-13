@@ -423,6 +423,8 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 		textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
 		text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 	}
+
+	// TODO draw time until start when all are ready
 }
 
 func (g *Game) DrawMainMenu(screen *ebiten.Image) {

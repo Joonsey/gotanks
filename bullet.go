@@ -187,6 +187,7 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 }
 
 func (bm *BulletManager) GetDrawData(g *Game) {
+	// TODO draw shadow
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
 	for _, bullet := range bm.bullets {
