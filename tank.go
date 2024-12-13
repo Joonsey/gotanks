@@ -87,7 +87,6 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 			g.context.tracks = append(g.context.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 		}
 
-
 		radius := 20
 		radi_sprite := ebiten.NewImage(radius, radius)
 		vector.StrokeCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/2, 2, color.White, true)

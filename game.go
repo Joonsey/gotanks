@@ -88,12 +88,13 @@ type Game struct {
 const (
 	alpha = 200
 )
+
 var player_palette = []color.Color{
-		color.RGBA{R: 255, G: 85, B: 85, A: alpha},
-		color.RGBA{R: 85, G: 85, B: 255, A: alpha},
-		color.RGBA{R: 85, G: 255, B: 85, A: alpha},
-		color.RGBA{R: 255, G: 255, B: 85, A: alpha},
-	}
+	color.RGBA{R: 255, G: 85, B: 85, A: alpha},
+	color.RGBA{R: 85, G: 85, B: 255, A: alpha},
+	color.RGBA{R: 85, G: 255, B: 85, A: alpha},
+	color.RGBA{R: 255, G: 255, B: 85, A: alpha},
+}
 
 func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 	if data.r != 0 || data.g != 0 || data.b != 0 {
@@ -177,6 +178,7 @@ func (g *Game) DrawGameOver(screen *ebiten.Image) {
 	textOp.GeoM.Translate(-float64(len(msg))*fontSize, -fontSize)
 	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 }
+
 // TODO refactor
 func (g *Game) DrawNewLevelTimer(screen *ebiten.Image) {
 	textOp := text.DrawOptions{}
@@ -313,11 +315,11 @@ func DrawPlayerUI(screen *ebiten.Image, player PlayerUpdate, num_players int, wi
 
 	width := RENDER_WIDTH / num_players
 
-	textOp.GeoM.Translate(float64(width * count + (width / 2)), fontSize * 2)
-	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, -fontSize *1.5)
+	textOp.GeoM.Translate(float64(width*count+(width/2)), fontSize*2)
+	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, -fontSize*1.5)
 
-	clr := player_palette[count % len(player_palette)]
-	vector.DrawFilledRect(screen, float32(width * count), 0, float32(width), float32(fontSize) * 2, clr, true)
+	clr := player_palette[count%len(player_palette)]
+	vector.DrawFilledRect(screen, float32(width*count), 0, float32(width), float32(fontSize)*2, clr, true)
 	text.Draw(screen, msg, &text.GoTextFace{Source: font, Size: fontSize}, &textOp)
 }
 

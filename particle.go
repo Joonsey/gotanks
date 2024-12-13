@@ -182,12 +182,12 @@ func (p *Particle) Update(game *Game) {
 		p.Position = game.tank.Position
 		p.current_t--
 	case ParticleTypeDonut:
-		radius := max(p.velocity * p.current_t, 1)
+		radius := max(p.velocity*p.current_t, 1)
 
 		image := ebiten.NewImage(int(radius)*4, int(radius)*4)
 		f32_radius := float32(radius)
 		vector.StrokeCircle(image, f32_radius*2, f32_radius*2, f32_radius, 6, color.White, false)
-		vector.StrokeCircle(image, f32_radius*2, f32_radius*2, f32_radius, 4, color.RGBA{R: 255, G: 85, B: 85, A:255}, false)
+		vector.StrokeCircle(image, f32_radius*2, f32_radius*2, f32_radius, 4, color.RGBA{R: 255, G: 85, B: 85, A: 255}, false)
 		p.sprites = append([]*ebiten.Image{}, image)
 
 		lifetime_progress := p.current_t / p.max_t

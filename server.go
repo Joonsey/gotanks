@@ -41,7 +41,7 @@ func NetBoolify(n uint) bool {
 
 const (
 	NEW_LEVEL_INTERVAL_S  = 3
-	GAME_OVER_INTERVAL_S = 5
+	GAME_OVER_INTERVAL_S  = 5
 	STATE_CHANGE_GRACE_MS = 500
 	KEEPALIVE_INTERVAL    = 30
 

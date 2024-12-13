@@ -50,10 +50,10 @@ type ServerStats struct {
 }
 
 type ServerSyncManager struct {
-	stats     ServerStats
+	stats ServerStats
 	//connector *libsql.Connector
 
-	temp_dir  string
+	temp_dir string
 	//db_handle *sql.DB
 }
 
