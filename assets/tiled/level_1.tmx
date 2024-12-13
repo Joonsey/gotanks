@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="46">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="49">
  <tileset firstgid="1" source="stacked_tilemap.tsx"/>
  <layer id="2" name="ground" width="30" height="20" locked="1">
   <data encoding="csv">
@@ -68,6 +68,15 @@
  </objectgroup>
  <objectgroup id="5" name="spawn">
   <object id="44" x="81.3333" y="55.3333">
+   <point/>
+  </object>
+  <object id="46" x="425.333" y="55.3333">
+   <point/>
+  </object>
+  <object id="47" x="428.667" y="276.667">
+   <point/>
+  </object>
+  <object id="48" x="69.3333" y="273.333">
    <point/>
   </object>
  </objectgroup>
