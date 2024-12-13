@@ -298,6 +298,14 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 					max_t:         45 * n,
 				})
 		}
+		game.pm.AddParticle(
+			Particle{Position: bullet.Position,
+			Rotation:      0,
+			sprites:       particle_sprite,
+			velocity:      .6,
+			particle_type: ParticleTypeDonut,
+			max_t:         55,
+		})
 
 		delete(game.bm.bullets, hit.Bullet_ID)
 	case PacketTypeNewRound:

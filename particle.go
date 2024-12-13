@@ -1,10 +1,12 @@
 package game
 
 import (
+	"image/color"
 	"math"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type ParticleTypeEnum int
@@ -14,6 +16,7 @@ const (
 	ParticleTypeSmoke
 	ParticleTypeGunSmoke
 	ParticleTypeTest
+	ParticleTypeDonut
 )
 
 type Particle struct {
@@ -78,6 +81,10 @@ func (pm *ParticleManager) AddParticle(particle Particle) {
 		particle.b = 0
 	case ParticleTypeSmoke:
 		particle.variance = 4
+	case ParticleTypeDonut:
+		particle.shadow = true
+		particle.Position.Y += 4
+		particle.offset.Y = -4
 
 	}
 	pm.particles = append(pm.particles, &particle)
@@ -174,6 +181,22 @@ func (p *Particle) Update(game *Game) {
 	case ParticleTypeTest:
 		p.Position = game.tank.Position
 		p.current_t--
+	case ParticleTypeDonut:
+		radius := max(p.velocity * p.current_t, 1)
+
+		image := ebiten.NewImage(int(radius)*4, int(radius)*4)
+		f32_radius := float32(radius)
+		vector.StrokeCircle(image, f32_radius*2, f32_radius*2, f32_radius, 6, color.White, false)
+		vector.StrokeCircle(image, f32_radius*2, f32_radius*2, f32_radius, 4, color.RGBA{R: 255, G: 85, B: 85, A:255}, false)
+		p.sprites = append([]*ebiten.Image{}, image)
+
+		lifetime_progress := p.current_t / p.max_t
+		if lifetime_progress <= 0.8 {
+			p.opacity = 1.0
+		} else {
+			fade_progress := (lifetime_progress - 0.8) / 0.2
+			p.opacity = 1.0 - fade_progress
+		}
 	}
 
 	p.current_t++
