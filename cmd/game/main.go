@@ -8,13 +8,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-const (
-	SCREEN_WIDTH  = 640
-	SCREEN_HEIGHT = 480
-)
-
 func main() {
-	ebiten.SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT)
+	ebiten.SetWindowSize(game.SCREEN_WIDTH, game.SCREEN_HEIGHT)
 	ebiten.SetWindowTitle("gotanks")
 
 	start_server := flag.Bool("server", false, "start server")
