@@ -16,10 +16,10 @@ func (c *Camera) Update(target_pos Position) {
 	c.Offset.X += (target_pos.X - c.Offset.X) / coefficient
 	c.Offset.Y += (target_pos.Y - c.Offset.Y) / coefficient
 
-	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+	if ebiten.IsKeyPressed(ebiten.KeyQ) {
 		c.rotation -= 0.01
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+	if ebiten.IsKeyPressed(ebiten.KeyE) {
 		c.rotation += 0.01
 	}
 }
