@@ -187,7 +187,6 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 }
 
 func (bm *BulletManager) GetDrawData(g *Game) {
-	// TODO draw shadow
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
 	for _, bullet := range bm.bullets {
@@ -200,6 +199,15 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 				intensity: 1,
 				offset:    Position{0, -TURRET_HEIGHT * 2},
 				opacity:   1,
+			})
+		g.context.draw_data = append(g.context.draw_data,
+			DrawData{
+				sprites:   bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
+				position:  Position{x, y - 4},
+				rotation:  -bullet.Rotation - g.camera.rotation + math.Pi,
+				intensity: 0,
+				offset:    Position{0, (-TURRET_HEIGHT * 2) + 8},
+				opacity:   .3,
 			})
 	}
 }
