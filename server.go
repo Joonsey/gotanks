@@ -30,6 +30,7 @@ const (
 	ServerGameStateStartingNewMatch
 	ServerGameStateStartingNewRound
 	ServerGameStateGoingBackToLobby
+	ServerGameStateGameOver
 )
 
 // converts uint to bool
@@ -40,6 +41,7 @@ func NetBoolify(n uint) bool {
 
 const (
 	NEW_LEVEL_INTERVAL_S  = 3
+	GAME_OVER_INTERVAL_S = 5
 	STATE_CHANGE_GRACE_MS = 500
 	KEEPALIVE_INTERVAL    = 30
 
@@ -434,6 +436,11 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 			}
 			s.Broadcast(packet, event)
 		}
+	case ServerGameStateGameOver:
+		if after_grace_period {
+			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
+			new_state = ServerGameStateWaitingInLobby
+		}
 	case ServerGameStatePlaying:
 		if after_grace_period && len(alive) <= 1 && total > 1 {
 			current_round := s.sm.stats.Rounds[len(s.sm.stats.Rounds)-1]
@@ -448,11 +455,17 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 				match.Winner_ID = sql.NullString{String: top_player, Valid: true}
 				go match.CompleteMatch(s.sm)
 
-				new_state = ServerGameStateWaitingInLobby
-				s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
+				new_state = ServerGameStateGameOver
+				wait_time := time.Now().Add(time.Second * GAME_OVER_INTERVAL_S)
 
-				packet := Packet{PacketType: PacketTypeBackToLobby}
-				s.Broadcast(packet, []byte{})
+				packet := Packet{PacketType: PacketTypeGameOver}
+				event := NewRoundEvent{
+					Timestamp: wait_time,
+					Level:     s.DetermineNextLevel(),
+					Winner:    winner_id,
+				}
+				s.wait_time = wait_time
+				s.Broadcast(packet, event)
 			} else {
 				packet := Packet{PacketType: PacketTypeNewRound}
 				spawns := s.GetSpawnMap()

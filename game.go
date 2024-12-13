@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"log"
 	"math"
 	"sort"
@@ -13,6 +14,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const (
@@ -58,6 +60,7 @@ type GameContext struct {
 
 	// TODO refactor
 	new_level_time time.Time
+	game_over_time time.Time
 
 	available_servers []AvailableServer
 	current_state     GameStateEnum
@@ -81,6 +84,16 @@ type Game struct {
 
 	context GameContext
 }
+
+const (
+	alpha = 200
+)
+var player_palette = []color.Color{
+		color.RGBA{R: 255, G: 85, B: 85, A: alpha},
+		color.RGBA{R: 85, G: 85, B: 255, A: alpha},
+		color.RGBA{R: 85, G: 255, B: 85, A: alpha},
+		color.RGBA{R: 255, G: 255, B: 85, A: alpha},
+	}
 
 func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 	if data.r != 0 || data.g != 0 || data.b != 0 {
@@ -152,6 +165,17 @@ func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 	return sprites
 }
 
+// TODO move to UI drawing
+// TODO refactor
+func (g *Game) DrawGameOver(screen *ebiten.Image) {
+	textOp := text.DrawOptions{}
+	t := g.context.game_over_time.Sub(time.Now())
+	msg := fmt.Sprintf("Back to lobby in %.2f.", max(t.Seconds(), 0))
+	fontSize := 8.
+	textOp.GeoM.Translate(RENDER_WIDTH, RENDER_HEIGHT)
+	textOp.GeoM.Translate(-float64(len(msg))*fontSize, -fontSize)
+	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+}
 // TODO refactor
 func (g *Game) DrawNewLevelTimer(screen *ebiten.Image) {
 	textOp := text.DrawOptions{}
@@ -277,6 +301,31 @@ func (g *Game) UpdateMainMenu() error {
 	return nil
 }
 
+func DrawPlayerUI(screen *ebiten.Image, player PlayerUpdate, num_players int, wins int, count int, font *text.GoTextFaceSource) {
+	textOp := text.DrawOptions{}
+	name := player.ID
+	if len(player.ID) > 6 {
+		name = player.ID[0:6]
+	}
+	msg := fmt.Sprintf("%-6s | %d", name, wins)
+	fontSize := 8.
+
+	width := RENDER_WIDTH / num_players
+
+	textOp.GeoM.Translate(float64(width * count + (width / 2)), fontSize * 2)
+	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, -fontSize *1.5)
+
+	clr := player_palette[count % len(player_palette)]
+	vector.DrawFilledRect(screen, float32(width * count), 0, float32(width), float32(fontSize) * 2, clr, true)
+	text.Draw(screen, msg, &text.GoTextFace{Source: font, Size: fontSize}, &textOp)
+}
+
+func (g *Game) DrawUI(screen *ebiten.Image) {
+	for count, player := range g.context.player_updates {
+		DrawPlayerUI(screen, player, len(g.context.player_updates), g.nm.client.wins[player.ID], count, g.am.new_level_font)
+	}
+}
+
 func (g *Game) Update() error {
 	var err error = nil
 	switch g.context.current_state {
@@ -302,11 +351,14 @@ func (g *Game) DrawGameplay(screen *ebiten.Image) {
 	g.pm.GetDrawData(g)
 	if g.nm.client.isConnected() {
 		g.nm.GetDrawData(g)
+		defer g.DrawUI(screen)
 
 		if g.nm.client.server_state == ServerGameStateStartingNewRound {
 			defer g.DrawNewLevelTimer(screen)
 		}
-
+		if g.nm.client.server_state == ServerGameStateGameOver {
+			defer g.DrawGameOver(screen)
+		}
 	}
 
 	for _, track := range g.context.tracks {

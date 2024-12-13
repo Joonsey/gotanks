@@ -18,7 +18,8 @@ const (
 	BUFFER_SIZE = 2048
 
 	MEDIATOR_PORT = 8080
-	MEDIATOR_ADDR = "84.215.22.166"
+	// MEDIATOR_ADDR = "84.215.22.166"
+	MEDIATOR_ADDR = "127.0.0.1"
 
 	// update_interval = fps / desired ticks per second
 	// 3 = 60/20
@@ -236,6 +237,11 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 		}
 	}
 }
+func (c *Client) IncrementWin(winner string) {
+	if winner != "" {
+		c.wins[winner]++
+	}
+}
 
 func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 	dec := gob.NewDecoder(bytes.NewReader(packet_data.Data))
@@ -288,9 +294,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			log.Panic("error decoding new round event", err)
 		}
 
-		if event.Winner != "" {
-			c.wins[event.Winner]++
-		}
+		c.IncrementWin(event.Winner)
 
 		spawn, ok := event.Spawns[AuthToString(*c.Auth)]
 		if !ok {
@@ -324,6 +328,21 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		}
 	case PacketTypeBackToLobby:
 		game.context.current_state = GameStateLobby
+	case PacketTypeGameOver:
+		event := NewRoundEvent{Spawns: map[string]Position{}}
+		err := dec.Decode(&event)
+		if err != nil {
+			log.Panic("error decoding game over event", err)
+		}
+
+		c.IncrementWin(event.Winner)
+
+		game.context.game_over_time = event.Timestamp
+		go func() {
+			time.Sleep(event.Timestamp.Sub(time.Now()))
+			game.context.current_state = GameStateLobby
+			game.bm.Reset()
+		}()
 	case PacketTypeAvailableHosts:
 		err := dec.Decode(&c.available_servers)
 		if err != nil {

@@ -180,6 +180,10 @@ func (t *Tank) Update(g *Game) {
 			go g.nm.client.Send(PacketTypeUpdateCurrentPlayer, t.TankMinimal)
 		}
 	}
+
+	for _, player := range g.context.player_updates {
+		g.gm.ApplyForce(player.Tank.X, player.Tank.Y)
+	}
 }
 
 func (t *Tank) Respawn(spawn Position) {

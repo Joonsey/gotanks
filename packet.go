@@ -49,6 +49,7 @@ const (
 	PacketTypeNewRound
 	PacketTypeNewMatch
 	PacketTypeBackToLobby
+	PacketTypeGameOver
 
 	PacketTypeAvailableHosts
 	PacketTypeNegotiate
