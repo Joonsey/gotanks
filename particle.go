@@ -31,6 +31,7 @@ type Particle struct {
 
 	seed     int64
 	variance int
+	shadow   bool
 
 	particle_type ParticleTypeEnum
 
@@ -68,6 +69,7 @@ func (pm *ParticleManager) AddParticle(particle Particle) {
 	}
 
 	particle.seed = time.Now().UnixMilli()
+	particle.shadow = true
 
 	switch particle.particle_type {
 	case ParticleTypeDebrisFromTank:
@@ -76,6 +78,7 @@ func (pm *ParticleManager) AddParticle(particle Particle) {
 		particle.b = 0
 	case ParticleTypeSmoke:
 		particle.variance = 4
+
 	}
 	pm.particles = append(pm.particles, &particle)
 }
@@ -179,7 +182,9 @@ func (p *Particle) Update(game *Game) {
 func (pm *ParticleManager) GetDrawData(g *Game) {
 	for _, particle := range pm.particles {
 		g.context.draw_data = append(g.context.draw_data, particle.GetDrawData(g.camera))
-		g.context.draw_data = append(g.context.draw_data, particle.GetDrawShadowData(g.camera))
+		if particle.shadow {
+			g.context.draw_data = append(g.context.draw_data, particle.GetDrawShadowData(g.camera))
+		}
 	}
 }
 
