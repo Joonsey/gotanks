@@ -12,8 +12,8 @@ import (
 const (
 	SPEED          = 2
 	ROTATION_SPEED = .04
-	TRACK_LIFETIME = 64
-	TRACK_INTERVAL = 8
+	TRACK_LIFETIME = 80
+	TRACK_INTERVAL = 3
 	TURRET_HEIGHT  = 4
 
 	// we need this because GOB fails to decode values which are '0'
@@ -125,10 +125,15 @@ func (t *Tank) TryMove(g *Game, speed float64) {
 	y := math.Sin(t.Rotation)
 
 	t.X += x * speed
-	t.Y += y * speed
 	collided_object := g.level.CheckObjectCollision(t.Position)
 	if collided_object != nil {
-		t.Position = initial_position
+		t.Position.X = initial_position.X
+	}
+
+	t.Y += y * speed
+	collided_object = g.level.CheckObjectCollision(t.Position)
+	if collided_object != nil {
+		t.Position.Y = initial_position.Y
 	}
 
 }
