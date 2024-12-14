@@ -42,6 +42,7 @@ type Track struct {
 // this is used for sending over the network
 type TankMinimal struct {
 	Position
+	Component
 	Rotation        float64
 	Turret_rotation float64
 	Life            int
@@ -54,6 +55,11 @@ type Tank struct {
 
 	track_sprites []*ebiten.Image
 	dead_sprites  []*ebiten.Image
+
+	ReloadTime float64 // Time remaining for reload
+	BulletsInMagazine int
+	MaxBulletsInMagazine int // Based on bullet configuration
+	IsReloading bool
 }
 
 func (t *TankMinimal) Alive() bool {
@@ -166,23 +172,73 @@ func (t *Tank) Update(g *Game) {
 
 	g.gm.ApplyForce(t.X, t.Y)
 
+	loaderType := t.Get(LoaderMask)
+	bulletType := BulletTypeEnum(t.Get(BulletMask))
+
+	// MADE UP
+	// should be aggregate of loaderType + BulletType
+	t.MaxBulletsInMagazine = DetermineBaseMagSize(bulletType) * DetermineMaxMagMultiplier(loaderType)
+	base_reload_speed := DetermineBaseReloadSpeed(bulletType)
+
+	switch loaderType {
+	case LoaderAutoloader:
+		// Autoloader logic: reload multiple bullets at once but takes longer
+		if t.IsReloading {
+			t.ReloadTime = t.ReloadTime - (0.06)
+			if t.ReloadTime <= 0 {
+				// Refill the magazine
+				t.BulletsInMagazine = t.MaxBulletsInMagazine
+				t.IsReloading = false
+			}
+		} else if t.BulletsInMagazine <= 0 {
+			t.StartReload(base_reload_speed * 5) // Example: 3 seconds to reload with autoloader
+		}
+
+	case LoaderFastReload:
+		// Fast reload logic: faster single-bullet reload
+		if t.IsReloading {
+			t.ReloadTime = t.ReloadTime - (0.06)
+			if t.ReloadTime <= 0 {
+				// Reload one bullet
+				t.BulletsInMagazine++
+				t.IsReloading = false
+			}
+		} else if t.BulletsInMagazine < t.MaxBulletsInMagazine {
+			t.StartReload(base_reload_speed) // Example: 1 second per bullet
+		}
+
+	case LoaderManualReload:
+		// Manual reload logic: requires skill-check
+		if t.IsReloading {
+			// Simulate skill-check mechanism (placeholder logic)
+			t.ReloadTime = t.ReloadTime - (0.06)
+			if t.ReloadTime <= 0 {
+				t.BulletsInMagazine++
+				t.IsReloading = false
+			}
+		} else if t.BulletsInMagazine < t.MaxBulletsInMagazine {
+			t.StartReload(base_reload_speed * 2) // Example: base reload time for manual reload
+		}
+	}
+
 	x, y := ebiten.CursorPosition()
 
 	rel_x, rel_y := g.camera.GetRelativePosition(t.X, t.Y)
 	rel_rotation := -math.Atan2(rel_x-float64(x), rel_y-float64(y))
 	t.Turret_rotation = rel_rotation
-	bullet_pos := t.Position
 
-	// offsetting bullet position
-	// this is nessecary because we are shooting from the barrel
-	// not the base
-	bullet_pos.Y += TURRET_HEIGHT
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) && t.Alive() && t.Fire() {
+		bullet_pos := t.Position
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButton0) && t.Alive() {
+		// offsetting bullet position
+		// this is nessecary because we are shooting from the barrel
+		// not the base
+		bullet_pos.Y += TURRET_HEIGHT
+
 		bullet := Bullet{}
 		bullet.Position = bullet_pos
 		bullet.Rotation = -rel_rotation + -g.camera.rotation + math.Pi
-		bullet.Bullet_type = BulletTypeStandard
+		bullet.Bullet_type = bulletType
 
 		g.bm.Shoot(bullet)
 	}
@@ -198,12 +254,38 @@ func (t *Tank) Update(g *Game) {
 	}
 }
 
+func (t *Tank) StartReload(reloadTime float64) {
+	t.IsReloading = true
+	t.ReloadTime = reloadTime
+}
+
+func (t *Tank) Fire() bool {
+	loader_type := t.Get(LoaderMask)
+	if t.BulletsInMagazine <= 0 {
+		return false
+	}
+
+	switch loader_type {
+	default:
+		t.BulletsInMagazine--
+		return true
+	}
+}
+
+func (t *Tank) Reset() {
+	t.Life = 10
+	t.BulletsInMagazine = t.MaxBulletsInMagazine
+	t.ReloadTime = 0
+	t.IsReloading = false
+}
+
 func (t *Tank) Respawn(spawn Position) {
 	t.Position = spawn
 
 	// it can not be 0 as gob will fail if it's 0
 	t.Rotation = 0.001
-	t.Life = 10
+
+	t.Reset()
 }
 
 func (t *Tank) Hit(hit BulletHit) {

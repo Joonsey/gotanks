@@ -9,11 +9,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type BulletTypeEnum uint
+type BulletTypeEnum uint8
 
 const (
-	BulletTypeStandard BulletTypeEnum = iota
+	BulletTypeStandard BulletTypeEnum = iota + 1
 	BulletTypeFast
+	BulletTypeEnd
 )
 
 const (
@@ -151,6 +152,35 @@ func (bm *BulletManager) DetermineVelocity(bullet_type BulletTypeEnum) float64 {
 		return 3
 	default:
 		return 1.3
+	}
+}
+
+func DetermineBaseMagSize(bullet_type BulletTypeEnum) int {
+	switch bullet_type {
+	case BulletTypeStandard:
+		return 2
+	default:
+		return 1
+	}
+}
+
+func DetermineBaseReloadSpeed(bullet_type BulletTypeEnum) float64 {
+	switch bullet_type {
+	case BulletTypeFast:
+		return 3
+	default:
+		return 2
+	}
+}
+
+func DetermineBulletName(bullet_type BulletTypeEnum) string {
+	switch bullet_type {
+	case BulletTypeFast:
+		return "sniper"
+	case BulletTypeStandard:
+		return "standard"
+	default:
+		return "missing!"
 	}
 }
 

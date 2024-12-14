@@ -50,6 +50,7 @@ const (
 	GameStatePlaying
 	GameStateServerPicking
 	GameStateMainMenu
+	GameStateTankLoadout
 )
 
 type GameContext struct {
@@ -229,6 +230,63 @@ func (g *Game) UpdateGameplay() error {
 	return nil
 }
 
+func (g *Game) UpdateTankLoadout() error {
+	if g.nm.client.isConnected() {
+		g.nm.client.KeepAlive(g)
+	}
+
+	loader_type := g.tank.Get(LoaderMask)
+	bullet_type := g.tank.Get(BulletMask)
+	barrel_type := g.tank.Get(BarrelMask)
+	track_type := g.tank.Get(TracksMask)
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		g.context.current_selection++
+		if g.context.current_selection >= 5 {
+			g.context.current_selection = 0
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
+		g.context.current_selection--
+		if g.context.current_selection < 0 {
+			g.context.current_selection = 4
+		}
+	}
+
+	incr_key := ebiten.KeyD
+	switch g.context.current_selection {
+		case 0:
+			if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+				g.context.current_selection = 0
+				if g.nm.client.isConnected() {
+					g.context.current_state = GameStateLobby
+				} else {
+					g.context.current_state = GameStateMainMenu
+				}
+			}
+		case 1:
+			if inpututil.IsKeyJustPressed(incr_key) {
+				g.tank.Set(LoaderMask, max((loader_type + 1) % LoaderEnd, 1))
+			}
+		case 2:
+			if inpututil.IsKeyJustPressed(incr_key) {
+				g.tank.Set(BulletMask, max((bullet_type + 1) % uint8(BulletTypeEnd), 1))
+			}
+		case 3:
+			if inpututil.IsKeyJustPressed(incr_key) {
+				g.tank.Set(BarrelMask, max((barrel_type + 1) % BarrelEnd, 1))
+			}
+		case 4:
+			if inpututil.IsKeyJustPressed(incr_key) {
+				g.tank.Set(TracksMask, max((track_type + 1) % TracksEnd, 1))
+			}
+		}
+
+	// not great, but works
+	g.tank.Reset()
+	return nil
+}
+
 func (g *Game) UpdateLobby() error {
 	g.nm.client.KeepAlive(g)
 
@@ -239,6 +297,11 @@ func (g *Game) UpdateLobby() error {
 	if !g.nm.client.isConnected() {
 		g.context.current_selection = 0
 		g.context.current_state = GameStateServerPicking
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		g.context.current_selection = 0
+		g.context.current_state = GameStateTankLoadout
 	}
 
 	return nil
@@ -328,10 +391,28 @@ func (g *Game) DrawPlayerUI(screen *ebiten.Image, player PlayerUpdate, num_playe
 	text.Draw(screen, msg, &text.GoTextFace{Source: font, Size: fontSize}, &textOp)
 }
 
+func (g *Game) DrawAmmo(screen *ebiten.Image) {
+	bullet_sprites := g.am.GetSpriteFromBulletTypeEnum(BulletTypeEnum(g.tank.Get(BulletMask)))
+
+	rel_x, rel_y := g.camera.GetRelativePosition(g.tank.X, g.tank.Y)
+
+	x_offset := float64(-35)
+
+	for i := range g.tank.MaxBulletsInMagazine {
+		if i >= g.tank.BulletsInMagazine {
+			DrawStackedSprite(bullet_sprites, screen, rel_x + x_offset, rel_y - 10 * float64(i), math.Pi / 2, .5, 1)
+		} else {
+			DrawStackedSprite(bullet_sprites, screen, rel_x + x_offset, rel_y - 10 * float64(i), math.Pi / 2, 1, 1)
+		}
+	}
+}
+
 func (g *Game) DrawUI(screen *ebiten.Image) {
 	for count, player := range g.context.player_updates {
 		g.DrawPlayerUI(screen, player, len(g.context.player_updates), g.nm.client.wins[player.ID], count, g.am.new_level_font)
 	}
+
+	g.DrawAmmo(screen)
 }
 
 func (g *Game) Update() error {
@@ -341,6 +422,8 @@ func (g *Game) Update() error {
 		err = g.UpdateGameplay()
 	case GameStateLobby:
 		err = g.UpdateLobby()
+	case GameStateTankLoadout:
+		err = g.UpdateTankLoadout()
 	case GameStateMainMenu:
 		err = g.UpdateMainMenu()
 	case GameStateServerPicking:
@@ -472,6 +555,47 @@ func (g *Game) DrawServerPicking(screen *ebiten.Image) {
 	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 }
 
+func (g *Game) DrawTankLoadout(screen *ebiten.Image) {
+	for i := range 4 {
+		textOp := text.DrawOptions{}
+		var msg string = "";
+		switch i {
+		case 0:
+			msg = fmt.Sprintf("loadout: %s\n", DetermineLoaderName(g.tank.Get(LoaderMask)))
+		case 1:
+			msg = fmt.Sprintf("bullet: %s\n", DetermineBulletName(BulletTypeEnum(g.tank.Get(BulletMask))))
+		case 2:
+			msg = fmt.Sprintf("TEMP: bullet: %s\n", DetermineBulletName(BulletTypeEnum(g.tank.Get(BarrelMask))))
+		case 3:
+			msg = fmt.Sprintf("TEMP: bullet: %s\n", DetermineBulletName(BulletTypeEnum(g.tank.Get(TracksMask))))
+		}
+
+
+		if i+1 == g.context.current_selection {
+			msg = fmt.Sprintf("* %s", msg)
+		} else {
+			msg = fmt.Sprintf("  %s", msg)
+		}
+		fontSize := 8.
+		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i)*fontSize + 200)
+		textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
+		text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+	}
+
+	msg := "  back to menu"
+	if g.nm.client.isConnected() {
+		msg = "  back to lobby"
+	}
+	if g.context.current_selection == 0 {
+		msg = fmt.Sprintf("* %s", msg)
+	}
+	fontSize := 8.
+	textOp := text.DrawOptions{}
+	textOp.GeoM.Translate(RENDER_WIDTH/2, RENDER_HEIGHT-(fontSize*3))
+	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
+	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
 	switch g.context.current_state {
 	case GameStatePlaying:
@@ -482,6 +606,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.DrawMainMenu(screen)
 	case GameStateServerPicking:
 		g.DrawServerPicking(screen)
+	case GameStateTankLoadout:
+		g.DrawTankLoadout(screen)
 	}
 }
 
@@ -519,6 +645,12 @@ func GameInit() *Game {
 			sprites: tank_barrel_sprite,
 		},
 	}
+
+	tank.Component.Set(LoaderMask, LoaderAutoloader)
+	tank.Component.Set(BarrelMask, BarrelHeavy)
+	tank.Component.Set(BulletMask, uint8(BulletTypeStandard))
+	tank.Component.Set(TracksMask, 1)
+
 
 	game.tank = tank
 	game.tank.turret.rotation = &game.tank.Turret_rotation
