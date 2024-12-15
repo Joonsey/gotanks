@@ -107,6 +107,9 @@ func (l *Level) MakeGrass(object_group *tiled.ObjectGroup, gm *GrassManager) {
 }
 
 func loadLevel(map_path string, am *AssetManager, gm *GrassManager) Level {
+	// level should have owner ship of grass
+	// global grass manager should not exist
+	// TODO
 	game_map, err := tiled.LoadFile(map_path)
 	if err != nil {
 		log.Fatal(err)
