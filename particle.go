@@ -178,6 +178,9 @@ func (p *Particle) Update(game *Game) {
 		p.Position = game.tank.Position
 		p.current_t--
 	case ParticleTypeDonut:
+		// TODO implement with new DrawData
+		// probably just slap a sprite field on particles, or calculate this in draw call instead of update call
+
 		//radius := max(p.velocity*p.current_t, 1)
 
 		//image := ebiten.NewImage(int(radius)*4, int(radius)*4)
