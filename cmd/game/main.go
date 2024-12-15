@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
 	"gotanks"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -14,6 +16,7 @@ func main() {
 
 	start_server := flag.Bool("server", false, "start server")
 	force_new_id := flag.Bool("f", false, "force new id")
+	profiler := flag.Bool("p", false, "start profiler")
 	flag.Parse()
 
 	g := game.GameInit()
@@ -24,6 +27,12 @@ func main() {
 
 	if *start_server {
 		g.HostServer()
+	}
+
+	if *profiler {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
 	}
 
 	if err := ebiten.RunGame(g); err != nil {
