@@ -32,7 +32,13 @@ type Position struct {
 }
 
 type DrawData struct {
-	sprites   []*ebiten.Image
+	sprite *ebiten.Image
+	// will override sprite stack caching
+	// should only be set IF:
+	//		- is not sprite stack
+	//		- have to respect draw order
+	//		- is only one image
+	path      string
 	position  Position
 	rotation  float64
 	intensity float32
@@ -99,58 +105,72 @@ var player_palette = []color.Color{
 
 var PLAYER_COLOR = color.RGBA{R: 85, G: 85, B: 255, A: alpha}
 
-func DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
+func (g *Game) DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 	if data.r != 0 || data.g != 0 || data.b != 0 {
-		DrawStackedSpriteWithColor(
-			data.sprites,
-			screen,
-			data.position.X+data.offset.X,
-			data.position.Y+data.offset.Y,
-			data.rotation,
-			data.r*data.intensity,
-			data.g*data.intensity,
-			data.b*data.intensity,
-			data.opacity,
-		)
+		if data.sprite != nil {
+			op := &ebiten.DrawImageOptions{}
+			x := data.position.X + data.offset.X
+			y := data.position.Y + data.offset.Y
+			op.GeoM.Translate(-float64(data.sprite.Bounds().Dx())/2, -float64(data.sprite.Bounds().Dy())/2)
+			op.GeoM.Rotate(data.rotation - 90*math.Pi / 180)
+			op.GeoM.Translate(x, y)
+			scale := ebiten.ColorScale{}
+			scale.SetR(data.r * data.intensity)
+			scale.SetG(data.g * data.intensity)
+			scale.SetB(data.b * data.intensity)
+			op.ColorScale.ScaleAlpha(data.opacity)
+			op.ColorScale.ScaleWithColorScale(scale)
+
+			screen.DrawImage(data.sprite, op)
+		} else {
+			g.DrawStackedSpriteWithColor(
+				data.path,
+				screen,
+				data.position.X+data.offset.X,
+				data.position.Y+data.offset.Y,
+				data.rotation,
+				data.r*data.intensity,
+				data.g*data.intensity,
+				data.b*data.intensity,
+				data.opacity,
+			)
+		}
 	} else {
-		DrawStackedSprite(
-			data.sprites,
-			screen,
-			data.position.X+data.offset.X,
-			data.position.Y+data.offset.Y,
-			data.rotation,
-			data.intensity,
-			data.opacity,
-		)
+		if data.sprite != nil {
+			op := &ebiten.DrawImageOptions{}
+			x := data.position.X + data.offset.X
+			y := data.position.Y + data.offset.Y
+			op.GeoM.Translate(-float64(data.sprite.Bounds().Dx())/2, -float64(data.sprite.Bounds().Dy())/2)
+			op.GeoM.Rotate(data.rotation - 90*math.Pi / 180)
+			op.GeoM.Translate(x, y)
+			scale := ebiten.ColorScale{}
+			scale.SetR(data.intensity)
+			scale.SetG(data.intensity)
+			scale.SetB(data.intensity)
+			op.ColorScale.ScaleAlpha(data.opacity)
+			op.ColorScale.ScaleWithColorScale(scale)
+
+			screen.DrawImage(data.sprite, op)
+		} else {
+			g.DrawStackedSprite(
+				data.path,
+				screen,
+				data.position.X+data.offset.X,
+				data.position.Y+data.offset.Y,
+				data.rotation,
+				data.intensity,
+				data.opacity,
+			)
+		}
 	}
 }
 
-func DrawStackedSprite(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64, intensity, opacity float32) {
-	DrawStackedSpriteWithColor(source, screen, x, y, rotation, intensity, intensity, intensity, opacity)
+func (g *Game) DrawStackedSprite(path string, screen *ebiten.Image, x, y, rotation float64, intensity, opacity float32) {
+	g.DrawStackedSpriteWithColor(path, screen, x, y, rotation, intensity, intensity, intensity, opacity)
 }
 
-func DrawStackedSpriteWithColor(source []*ebiten.Image, screen *ebiten.Image, x, y, rotation float64, r, g, b, opacity float32) {
-	half_size := float64(source[0].Bounds().Dx()) / 2
-
-	for i, image := range source {
-		op := &ebiten.DrawImageOptions{}
-
-		// moving by half-size to rotate around the center
-		op.GeoM.Translate(-half_size, -half_size)
-		op.GeoM.Rotate(rotation - 90*math.Pi/180)
-
-		// experimenting with not moving back, drawing around center instead
-		//op.GeoM.Translate(half_size, half_size)
-
-		op.GeoM.Translate(x, y-float64(i))
-		scale := ebiten.ColorScale{}
-		scale.SetR(r)
-		scale.SetG(g)
-		scale.SetB(b)
-		op.ColorScale.ScaleAlpha(opacity)
-		op.ColorScale.ScaleWithColorScale(scale)
-		screen.DrawImage(image, op)
-	}
+func (game *Game) DrawStackedSpriteWithColor(path string, screen *ebiten.Image, x, y, rotation float64, r, g, b, opacity float32) {
+	game.am.DrawRotatedSprite(screen, path, x, y, rotation, r, g, b, opacity)
 }
 
 func SplitSprites(source *ebiten.Image) []*ebiten.Image {
@@ -255,32 +275,32 @@ func (g *Game) UpdateTankLoadout() error {
 
 	incr_key := ebiten.KeyD
 	switch g.context.current_selection {
-		case 0:
-			if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-				g.context.current_selection = 0
-				if g.nm.client.isConnected() {
-					g.context.current_state = GameStateLobby
-				} else {
-					g.context.current_state = GameStateMainMenu
-				}
-			}
-		case 1:
-			if inpututil.IsKeyJustPressed(incr_key) {
-				g.tank.Set(LoaderMask, max((loader_type + 1) % LoaderEnd, 1))
-			}
-		case 2:
-			if inpututil.IsKeyJustPressed(incr_key) {
-				g.tank.Set(BulletMask, max((bullet_type + 1) % uint8(BulletTypeEnd), 1))
-			}
-		case 3:
-			if inpututil.IsKeyJustPressed(incr_key) {
-				g.tank.Set(BarrelMask, max((barrel_type + 1) % BarrelEnd, 1))
-			}
-		case 4:
-			if inpututil.IsKeyJustPressed(incr_key) {
-				g.tank.Set(TracksMask, max((track_type + 1) % TracksEnd, 1))
+	case 0:
+		if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+			g.context.current_selection = 0
+			if g.nm.client.isConnected() {
+				g.context.current_state = GameStateLobby
+			} else {
+				g.context.current_state = GameStateMainMenu
 			}
 		}
+	case 1:
+		if inpututil.IsKeyJustPressed(incr_key) {
+			g.tank.Set(LoaderMask, max((loader_type+1)%LoaderEnd, 1))
+		}
+	case 2:
+		if inpututil.IsKeyJustPressed(incr_key) {
+			g.tank.Set(BulletMask, max((bullet_type+1)%uint8(BulletTypeEnd), 1))
+		}
+	case 3:
+		if inpututil.IsKeyJustPressed(incr_key) {
+			g.tank.Set(BarrelMask, max((barrel_type+1)%BarrelEnd, 1))
+		}
+	case 4:
+		if inpututil.IsKeyJustPressed(incr_key) {
+			g.tank.Set(TracksMask, max((track_type+1)%TracksEnd, 1))
+		}
+	}
 
 	// not great, but works
 	g.tank.Reset()
@@ -400,9 +420,9 @@ func (g *Game) DrawAmmo(screen *ebiten.Image) {
 
 	for i := range g.tank.MaxBulletsInMagazine {
 		if i >= g.tank.BulletsInMagazine {
-			DrawStackedSprite(bullet_sprites, screen, rel_x + x_offset, rel_y - 10 * float64(i), math.Pi / 2, .5, 1)
+			g.am.DrawRotatedSprite(screen, bullet_sprites, rel_x+x_offset, rel_y-10*float64(i), math.Pi/2, .5, .5, .5, 1)
 		} else {
-			DrawStackedSprite(bullet_sprites, screen, rel_x + x_offset, rel_y - 10 * float64(i), math.Pi / 2, 1, 1)
+			g.am.DrawRotatedSprite(screen, bullet_sprites, rel_x+x_offset, rel_y-10*float64(i), math.Pi/2, 1, 1, 1, 1)
 		}
 	}
 }
@@ -457,7 +477,7 @@ func (g *Game) DrawGameplay(screen *ebiten.Image) {
 		offset := float64(8)
 		opacity := float32(track.lifetime) / float32(TRACK_LIFETIME)
 		g.context.draw_data = append(g.context.draw_data, DrawData{
-			sprites:   g.tank.track_sprites,
+			path:      g.tank.track_sprites_path,
 			position:  Position{x, y - offset},
 			rotation:  track.rotation - g.camera.rotation,
 			intensity: 1,
@@ -473,7 +493,7 @@ func (g *Game) DrawGameplay(screen *ebiten.Image) {
 	})
 
 	for _, data := range g.context.draw_data {
-		DrawStackedSpriteDrawData(screen, data)
+		g.DrawStackedSpriteDrawData(screen, data)
 	}
 
 	g.context.draw_data = []DrawData{}
@@ -558,7 +578,7 @@ func (g *Game) DrawServerPicking(screen *ebiten.Image) {
 func (g *Game) DrawTankLoadout(screen *ebiten.Image) {
 	for i := range 4 {
 		textOp := text.DrawOptions{}
-		var msg string = "";
+		var msg string = ""
 		switch i {
 		case 0:
 			msg = fmt.Sprintf("loadout: %s\n", DetermineLoaderName(g.tank.Get(LoaderMask)))
@@ -570,14 +590,13 @@ func (g *Game) DrawTankLoadout(screen *ebiten.Image) {
 			msg = fmt.Sprintf("TEMP: bullet: %s\n", DetermineBulletName(BulletTypeEnum(g.tank.Get(TracksMask))))
 		}
 
-
 		if i+1 == g.context.current_selection {
 			msg = fmt.Sprintf("* %s", msg)
 		} else {
 			msg = fmt.Sprintf("  %s", msg)
 		}
 		fontSize := 8.
-		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i)*fontSize + 200)
+		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i)*fontSize+200)
 		textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
 		text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 	}
@@ -631,18 +650,13 @@ func GameInit() *Game {
 	game := Game{}
 	game.am = am
 
-	tank_sprite := am.GetSprites("assets/sprites/stacks/tank.png")
-	tank_broken_sprite := am.GetSprites("assets/sprites/stacks/tank-broken.png")
-	tank_barrel_sprite := am.GetSprites("assets/sprites/stacks/tank-barrel.png")
-	track_sprite := am.GetSprites("assets/sprites/tracks.png")
-
 	tank := Tank{
-		TankMinimal:   TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
-		sprites:       tank_sprite,
-		track_sprites: track_sprite,
-		dead_sprites:  tank_broken_sprite,
+		TankMinimal:        TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
+		sprites_path:       "assets/sprites/stacks/tank.png",
+		track_sprites_path: "assets/sprites/tracks.png",
+		dead_sprites_path:  "assets/sprites/stacks/tank-broken.png",
 		turret: Turret{
-			sprites: tank_barrel_sprite,
+			sprites_path: "assets/sprites/stacks/tank-barrel.png",
 		},
 	}
 
@@ -650,7 +664,6 @@ func GameInit() *Game {
 	tank.Component.Set(BarrelMask, BarrelHeavy)
 	tank.Component.Set(BulletMask, uint8(BulletTypeStandard))
 	tank.Component.Set(TracksMask, 1)
-
 
 	game.tank = tank
 	game.tank.turret.rotation = &game.tank.Turret_rotation

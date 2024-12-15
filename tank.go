@@ -22,8 +22,8 @@ const (
 )
 
 type Turret struct {
-	sprites  []*ebiten.Image
-	rotation *float64
+	sprites_path string
+	rotation     *float64
 }
 
 type Track struct {
@@ -50,16 +50,16 @@ type TankMinimal struct {
 
 type Tank struct {
 	TankMinimal
-	sprites []*ebiten.Image
-	turret  Turret
+	sprites_path string
+	turret       Turret
 
-	track_sprites []*ebiten.Image
-	dead_sprites  []*ebiten.Image
+	track_sprites_path string
+	dead_sprites_path  string
 
-	ReloadTime float64 // Time remaining for reload
-	BulletsInMagazine int
+	ReloadTime           float64 // Time remaining for reload
+	BulletsInMagazine    int
 	MaxBulletsInMagazine int // Based on bullet configuration
-	IsReloading bool
+	IsReloading          bool
 }
 
 func (t *TankMinimal) Alive() bool {
@@ -75,14 +75,14 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr col
 
 	if t.Alive() {
 		g.context.draw_data = append(g.context.draw_data, DrawData{
-			sprites:   t.sprites,
+			path:      t.sprites_path,
 			position:  Position{x, y},
 			rotation:  t.Rotation - camera.rotation,
 			intensity: 1,
 			opacity:   1},
 		)
 		g.context.draw_data = append(g.context.draw_data, DrawData{
-			sprites:   t.turret.sprites,
+			path:      t.turret.sprites_path,
 			position:  Position{x, y + 1},
 			rotation:  *t.turret.rotation,
 			intensity: 1,
@@ -96,7 +96,7 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr col
 		radi_sprite := ebiten.NewImage(radius, radius)
 		vector.StrokeCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/2, 2, clr, true)
 		g.context.draw_data = append(g.context.draw_data, DrawData{
-			sprites:   []*ebiten.Image{radi_sprite},
+			sprite:    radi_sprite,
 			position:  Position{x, y - 1},
 			rotation:  t.Rotation,
 			intensity: 1,
@@ -105,18 +105,13 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr col
 
 	} else {
 		g.context.draw_data = append(g.context.draw_data, DrawData{
-			sprites:   t.dead_sprites,
+			path:      t.dead_sprites_path,
 			position:  Position{x, y},
 			rotation:  t.Rotation - camera.rotation,
 			intensity: 1,
 			opacity:   1},
 		)
 	}
-}
-
-func (t *Tank) DrawTurret(screen *ebiten.Image, camera Camera) {
-	x, y := camera.GetRelativePosition(t.X, t.Y)
-	DrawStackedSprite(t.turret.sprites, screen, x, y-3, *t.turret.rotation, 1, 1)
 }
 
 func (t *Tank) TryMove(g *Game, speed float64) {
@@ -149,7 +144,7 @@ func (t *TankMinimal) TryAddSmoke(g *Game) {
 				particle_type: ParticleTypeSmoke,
 				Position:      pos,
 				velocity:      0.2,
-				sprites:       g.am.GetSprites("assets/sprites/stacks/particle-cube-template.png"),
+				sprite_path:   "assets/sprites/stacks/particle-cube-template.png",
 			})
 	}
 }

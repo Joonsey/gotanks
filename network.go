@@ -205,7 +205,7 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 		if t.Alive() {
 			g.context.draw_data = append(g.context.draw_data,
 				DrawData{
-					sprites:   g.tank.sprites,
+					path:      g.tank.sprites_path,
 					position:  Position{x, y},
 					rotation:  t.Rotation - g.camera.rotation,
 					intensity: 1,
@@ -213,7 +213,7 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 			)
 			g.context.draw_data = append(g.context.draw_data,
 				DrawData{
-					sprites:   g.tank.turret.sprites,
+					path:      g.tank.turret.sprites_path,
 					position:  Position{x, y + 1},
 					rotation:  t.Turret_rotation,
 					intensity: 1,
@@ -223,11 +223,12 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 			if int(g.time*100)%TRACK_INTERVAL == 0 {
 				g.context.tracks = append(g.context.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 			}
+			_ = i
 			radius := 20
 			radi_sprite := ebiten.NewImage(radius, radius)
 			vector.StrokeCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/2, 2, player_palette[i%len(player_palette)], true)
 			g.context.draw_data = append(g.context.draw_data, DrawData{
-				sprites:   []*ebiten.Image{radi_sprite},
+				sprite:    radi_sprite,
 				position:  Position{x, y - 1},
 				rotation:  t.Rotation,
 				intensity: 1,
@@ -236,9 +237,9 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 			)
 		} else {
 			// TODO extrapolate dead sprites data
-			dead_sprites := g.tank.dead_sprites
+			dead_sprites := g.tank.dead_sprites_path
 			g.context.draw_data = append(g.context.draw_data, DrawData{
-				sprites:   dead_sprites,
+				path:      dead_sprites,
 				position:  Position{x, y},
 				rotation:  t.Rotation - g.camera.rotation,
 				intensity: 1,
@@ -282,7 +283,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		if c.isSelf(hit.Player) {
 			game.tank.Hit(hit)
 		}
-		particle_sprite := game.am.GetSprites("assets/sprites/stacks/particle-cube-template.png")
+		particle_sprite := "assets/sprites/stacks/particle-cube-template.png"
 		bullet := game.bm.bullets[hit.Bullet_ID]
 
 		seed := time.Now().Unix()
@@ -293,7 +294,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			game.pm.AddParticle(
 				Particle{Position: bullet.Position,
 					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
-					sprites:       particle_sprite,
+					sprite_path:   particle_sprite,
 					velocity:      n * .4,
 					particle_type: ParticleTypeDebrisFromTank,
 					max_t:         60 * n,
@@ -306,7 +307,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			game.pm.AddParticle(
 				Particle{Position: bullet.Position,
 					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
-					sprites:       particle_sprite,
+					sprite_path:   particle_sprite,
 					velocity:      n * .2,
 					particle_type: ParticleTypeDebrisFromTank,
 					max_t:         45 * n,
@@ -315,7 +316,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		game.pm.AddParticle(
 			Particle{Position: bullet.Position,
 				Rotation:      0,
-				sprites:       particle_sprite,
+				sprite_path:   particle_sprite,
 				velocity:      .6,
 				particle_type: ParticleTypeDonut,
 				max_t:         55,

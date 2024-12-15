@@ -6,7 +6,7 @@ import (
 
 // Component masks
 const (
-	LoaderMask uint32 = 0xFF        // First 8 bits (1-8)
+	LoaderMask uint32 = 0xFF       // First 8 bits (1-8)
 	BarrelMask uint32 = 0xFF00     // Second 8 bits (9-16)
 	BulletMask uint32 = 0xFF0000   // Third 8 bits (17-24)
 	TracksMask uint32 = 0xFF000000 // Fourth 8 bits (25-32)
@@ -56,7 +56,7 @@ func (c *Component) LogConfiguration() {
 }
 
 const (
-	LoaderAutoloader   uint8 = iota + 1 // Starts at 1 to avoid GOB's zero-value issue
+	LoaderAutoloader uint8 = iota + 1 // Starts at 1 to avoid GOB's zero-value issue
 	LoaderFastReload
 	LoaderManualReload
 	LoaderEnd
@@ -70,7 +70,7 @@ const (
 )
 
 const (
-	TracksLight  uint8 = iota + 1
+	TracksLight uint8 = iota + 1
 	TracksMedium
 	TracksHeavy
 	TracksEnd

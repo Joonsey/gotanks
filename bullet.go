@@ -5,8 +5,6 @@ import (
 	"log"
 	"math"
 	"sync"
-
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type BulletTypeEnum uint8
@@ -96,14 +94,14 @@ func InitBulletManager(nm *NetworkManager, am *AssetManager, pm *ParticleManager
 	return &bm
 }
 
-func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) []*ebiten.Image {
+func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) string {
 	switch bullet_type {
 	case BulletTypeStandard:
-		return am.GetSprites("assets/sprites/stacks/bullet.png")
+		return "assets/sprites/stacks/bullet.png"
 	case BulletTypeFast:
-		return am.GetSprites("assets/sprites/stacks/bullet-sniper.png")
+		return "assets/sprites/stacks/bullet-sniper.png"
 	default:
-		return am.GetSprites("assets/sprites/stacks/bullet.png")
+		return "assets/sprites/stacks/bullet.png"
 	}
 }
 
@@ -223,7 +221,7 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 		x, y := g.camera.GetRelativePosition(bullet.X, bullet.Y)
 		g.context.draw_data = append(g.context.draw_data,
 			DrawData{
-				sprites:   bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
+				path:      g.am.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
 				position:  Position{x, y},
 				rotation:  -bullet.Rotation - g.camera.rotation + math.Pi,
 				intensity: 1,
@@ -232,7 +230,7 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 			})
 		g.context.draw_data = append(g.context.draw_data,
 			DrawData{
-				sprites:   bm.asset_manager.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
+				path:      g.am.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
 				position:  Position{x, y - 4},
 				rotation:  -bullet.Rotation - g.camera.rotation + math.Pi,
 				intensity: 0,
