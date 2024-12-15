@@ -288,7 +288,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 
 		seed := time.Now().Unix()
 		particle_count := float64(seed % 5)
-		for i := range int(particle_count) + 1 {
+		for i := range int(particle_count) + 4 {
 			// TODO seed this so it can be reasonably consistent across clients
 			n := rand.Float64() + 1
 			game.pm.AddParticle(
@@ -301,7 +301,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 				})
 		}
 		particle_count = float64(seed % 3)
-		for i := range int(particle_count) + 1 {
+		for i := range int(particle_count) + 2 {
 			// TODO seed this so it can be reasonably consistent across clients
 			n := rand.Float64() + 1
 			game.pm.AddParticle(
