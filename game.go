@@ -173,6 +173,12 @@ func (game *Game) DrawStackedSpriteWithColor(path string, screen *ebiten.Image, 
 	game.am.DrawRotatedSprite(screen, path, x, y, rotation, r, g, b, opacity)
 }
 
+func (g *Game) Reset() {
+	g.bm.Reset()
+	g.pm.Reset()
+	g.context.tracks = []Track{}
+}
+
 func SplitSprites(source *ebiten.Image) []*ebiten.Image {
 	width := source.Bounds().Dx()
 	count := source.Bounds().Dy() / width

@@ -342,8 +342,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			time.Sleep(event.Timestamp.Sub(time.Now()))
 			game.context.current_state = GameStatePlaying
 			game.tank.Respawn(spawn)
-			game.bm.Reset()
-			game.pm.Reset()
+			game.Reset()
 		}()
 	case PacketTypeNewMatch:
 		event := NewMatchEvent{}
@@ -356,8 +355,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			for k := range c.wins {
 				c.wins[k] = 0
 			}
-			game.bm.Reset()
-			game.pm.Reset()
+			game.Reset()
 		}()
 	case PacketTypeServerStateChanged:
 		err := dec.Decode(&c.server_state)
@@ -379,7 +377,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		go func() {
 			time.Sleep(event.Timestamp.Sub(time.Now()))
 			game.context.current_state = GameStateLobby
-			game.bm.Reset()
+			game.Reset()
 		}()
 	case PacketTypeAvailableHosts:
 		err := dec.Decode(&c.available_servers)

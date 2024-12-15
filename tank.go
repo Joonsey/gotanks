@@ -175,9 +175,6 @@ func (t *Tank) Update(g *Game) {
 	loaderType := t.Get(LoaderMask)
 	bulletType := BulletTypeEnum(t.Get(BulletMask))
 
-	// MADE UP
-	// should be aggregate of loaderType + BulletType
-	t.MaxBulletsInMagazine = DetermineBaseMagSize(bulletType) * DetermineMaxMagMultiplier(loaderType)
 	base_reload_speed := DetermineBaseReloadSpeed(bulletType)
 
 	switch loaderType {
@@ -273,6 +270,10 @@ func (t *Tank) Fire() bool {
 }
 
 func (t *Tank) Reset() {
+	loaderType := t.Get(LoaderMask)
+	bulletType := BulletTypeEnum(t.Get(BulletMask))
+
+	t.MaxBulletsInMagazine = DetermineBaseMagSize(bulletType) * DetermineMaxMagMultiplier(loaderType)
 	t.Life = 10
 	t.BulletsInMagazine = t.MaxBulletsInMagazine
 	t.ReloadTime = 0
