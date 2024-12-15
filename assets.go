@@ -61,7 +61,7 @@ func (a *AssetManager) CacheRotatedSprites(path string, step int) {
 	// Compute effective dimensions of the stack
 	spriteWidth := source[0].Bounds().Dx()
 	spriteHeight := source[0].Bounds().Dy()
-	stackHeight := spriteHeight + (len(source) - 1) * 2                   // Account for effective height
+	stackHeight := spriteHeight + (len(source)-1)*2                   // Account for effective height
 	totalHeight := stackHeight + int(math.Ceil(float64(len(source)))) // Padding for safe bounds
 
 	// Compute diagonal for expanded canvas

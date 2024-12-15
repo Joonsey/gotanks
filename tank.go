@@ -53,8 +53,8 @@ type Tank struct {
 	sprites_path string
 	turret       Turret
 
-	track_sprite *ebiten.Image
-	dead_sprites_path  string
+	track_sprite      *ebiten.Image
+	dead_sprites_path string
 
 	ReloadTime           float64 // Time remaining for reload
 	BulletsInMagazine    int

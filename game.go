@@ -108,7 +108,7 @@ var player_palette = []color.Color{
 	color.RGBA{R: 255, G: 255, B: 85, A: alpha},
 }
 
-var STRIPE_COLOR = color.RGBA{R: 0, G: 107, B: 107, A: 255 }
+var STRIPE_COLOR = color.RGBA{R: 0, G: 107, B: 107, A: 255}
 var PLAYER_COLOR = color.RGBA{R: 85, G: 85, B: 255, A: alpha}
 var MISSING_PLAYER_COLOR = color.RGBA{R: 175, G: 175, B: 175, A: 255}
 
@@ -119,7 +119,7 @@ func (g *Game) DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 			x := data.position.X + data.offset.X
 			y := data.position.Y + data.offset.Y
 			op.GeoM.Translate(-float64(data.sprite.Bounds().Dx())/2, -float64(data.sprite.Bounds().Dy())/2)
-			op.GeoM.Rotate(data.rotation - 90*math.Pi / 180)
+			op.GeoM.Rotate(data.rotation - 90*math.Pi/180)
 			op.GeoM.Translate(x, y)
 			scale := ebiten.ColorScale{}
 			scale.SetR(data.r * data.intensity)
@@ -148,7 +148,7 @@ func (g *Game) DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 			x := data.position.X + data.offset.X
 			y := data.position.Y + data.offset.Y
 			op.GeoM.Translate(-float64(data.sprite.Bounds().Dx())/2, -float64(data.sprite.Bounds().Dy())/2)
-			op.GeoM.Rotate(data.rotation - 90*math.Pi / 180)
+			op.GeoM.Rotate(data.rotation - 90*math.Pi/180)
 			op.GeoM.Translate(x, y)
 			scale := ebiten.ColorScale{}
 			scale.SetR(data.intensity)
@@ -540,7 +540,7 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 
 	for i := range 4 {
-		clr := player_palette[i % len(player_palette)]
+		clr := player_palette[i%len(player_palette)]
 		padding := 5
 		// padding + player name truncated + spacing + is ready + padding
 		width := 8 * (padding + 8 + 1 + 1 + padding)
@@ -552,13 +552,13 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 		stroke_width := 2.0
 		textOp := text.DrawOptions{}
 		msg := "waiting for player"
-		textOp.GeoM.Translate((RENDER_WIDTH/2) - float64(width/2), (RENDER_HEIGHT/2) + float64(i) * float64(fontSize + float64(margin*2) + stroke_width))
+		textOp.GeoM.Translate((RENDER_WIDTH/2)-float64(width/2), (RENDER_HEIGHT/2)+float64(i)*float64(fontSize+float64(margin*2)+stroke_width))
 		textOp.GeoM.Translate(fontSize, float64(padding))
 		textOp.ColorScale.ScaleWithColor(MISSING_PLAYER_COLOR)
 		if i >= len(g.context.player_updates) {
 			clr = MISSING_PLAYER_COLOR
 
-			vector.StrokeRect(screen, (RENDER_WIDTH/2) - float32(width/2), (RENDER_HEIGHT/2) + float32(i) * float32(fontSize + float64(margin*2) + stroke_width), float32(width), float32(height), float32(stroke_width), clr, true)
+			vector.StrokeRect(screen, (RENDER_WIDTH/2)-float32(width/2), (RENDER_HEIGHT/2)+float32(i)*float32(fontSize+float64(margin*2)+stroke_width), float32(width), float32(height), float32(stroke_width), clr, true)
 			text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 
 		} else {
@@ -568,7 +568,7 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 				clr = PLAYER_COLOR
 			}
 
-			vector.StrokeRect(screen, (RENDER_WIDTH/2) - float32(width/2), (RENDER_HEIGHT/2) + float32(i) * float32(fontSize + float64(margin*2) + stroke_width), float32(width), float32(height), float32(stroke_width), clr, true)
+			vector.StrokeRect(screen, (RENDER_WIDTH/2)-float32(width/2), (RENDER_HEIGHT/2)+float32(i)*float32(fontSize+float64(margin*2)+stroke_width), float32(width), float32(height), float32(stroke_width), clr, true)
 			msg = fmt.Sprintf("%s %s", player.ID[0:8], PlayerReadyString(player.Ready))
 			textOp.ColorScale.Reset()
 			text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
@@ -578,21 +578,18 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 	// TODO draw time until start when all are ready
 }
 
-
-
 func (g *Game) DrawStripes(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{R: 11, B: 11, G: 11, A: 255})
 
-	offset_x := SCREEN_WIDTH/ AMOUNT_OF_STRIPES / 2
-	for i := range AMOUNT_OF_STRIPES + 1{
+	offset_x := SCREEN_WIDTH / AMOUNT_OF_STRIPES / 2
+	for i := range AMOUNT_OF_STRIPES + 1 {
 		op := ebiten.DrawImageOptions{}
 		x := offset_x * (i - 1) * 2
-		op.GeoM.Translate(float64(x) + float64(g.context.background_time / 4 % (offset_x * 2)), -SCREEN_WIDTH / 2)
+		op.GeoM.Translate(float64(x)+float64(g.context.background_time/4%(offset_x*2)), -SCREEN_WIDTH/2)
 		op.GeoM.Rotate(45)
 		screen.DrawImage(stripe_texture, &op)
 	}
 }
-
 
 func (g *Game) DrawMainMenu(screen *ebiten.Image) {
 	g.DrawStripes(screen)
@@ -711,9 +708,8 @@ func (g *Game) GenerateNewPlayerId() {
 }
 
 func (g *Game) InitStripeTexture() {
-	vector.DrawFilledRect(stripe_texture, 0, 0, float32(SCREEN_WIDTH / AMOUNT_OF_STRIPES / 2), SCREEN_HEIGHT, STRIPE_COLOR, true)
+	vector.DrawFilledRect(stripe_texture, 0, 0, float32(SCREEN_WIDTH/AMOUNT_OF_STRIPES/2), SCREEN_HEIGHT, STRIPE_COLOR, true)
 }
-
 
 func GameInit() *Game {
 	am := &AssetManager{}
@@ -725,10 +721,10 @@ func GameInit() *Game {
 	game.InitStripeTexture()
 
 	tank := Tank{
-		TankMinimal:        TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
-		sprites_path:       "assets/sprites/stacks/tank.png",
-		track_sprite:       am.GetSprites("assets/sprites/tracks.png")[0],
-		dead_sprites_path:  "assets/sprites/stacks/tank-broken.png",
+		TankMinimal:       TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
+		sprites_path:      "assets/sprites/stacks/tank.png",
+		track_sprite:      am.GetSprites("assets/sprites/tracks.png")[0],
+		dead_sprites_path: "assets/sprites/stacks/tank-broken.png",
 		turret: Turret{
 			sprites_path: "assets/sprites/stacks/tank-barrel.png",
 		},
