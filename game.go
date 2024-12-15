@@ -25,6 +25,8 @@ const (
 	SCREEN_HEIGHT = 960
 
 	SPRITE_SIZE = 16
+
+	AMOUNT_OF_STRIPES = 22
 )
 
 type Position struct {
@@ -73,6 +75,7 @@ type GameContext struct {
 	current_state     GameStateEnum
 	current_selection int
 	isReady           bool
+	background_time   int
 
 	current_server *AvailableServer
 }
@@ -96,6 +99,8 @@ const (
 	alpha = 200
 )
 
+var stripe_texture = ebiten.NewImage(SCREEN_WIDTH, SCREEN_HEIGHT)
+
 var player_palette = []color.Color{
 	color.RGBA{R: 255, G: 85, B: 85, A: alpha},
 	color.RGBA{R: 255, G: 85, B: 255, A: alpha},
@@ -103,7 +108,9 @@ var player_palette = []color.Color{
 	color.RGBA{R: 255, G: 255, B: 85, A: alpha},
 }
 
+var STRIPE_COLOR = color.RGBA{R: 0, G: 107, B: 107, A: 255 }
 var PLAYER_COLOR = color.RGBA{R: 85, G: 85, B: 255, A: alpha}
+var MISSING_PLAYER_COLOR = color.RGBA{R: 175, G: 175, B: 175, A: 255}
 
 func (g *Game) DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 	if data.r != 0 || data.g != 0 || data.b != 0 {
@@ -314,6 +321,8 @@ func (g *Game) UpdateTankLoadout() error {
 }
 
 func (g *Game) UpdateLobby() error {
+	g.context.background_time++
+
 	g.nm.client.KeepAlive(g)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
@@ -334,6 +343,8 @@ func (g *Game) UpdateLobby() error {
 }
 
 func (g *Game) UpdateServerPicking() error {
+	g.context.background_time++
+
 	g.context.available_servers = g.nm.client.GetServerList(g)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
@@ -372,6 +383,8 @@ func (g *Game) HostServer() {
 }
 
 func (g *Game) UpdateMainMenu() error {
+	g.context.background_time++
+
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		g.context.current_selection++
 		if g.context.current_selection >= 2 {
@@ -508,12 +521,13 @@ func (g *Game) DrawGameplay(screen *ebiten.Image) {
 
 func PlayerReadyString(n uint) string {
 	if NetBoolify(n) {
-		return "ready!"
+		return "R"
 	}
-	return "not ready!"
+	return "X"
 }
 
 func (g *Game) DrawLobby(screen *ebiten.Image) {
+	g.DrawStripes(screen)
 	if g.context.current_server == nil {
 		log.Panic("current server is nil")
 	}
@@ -525,18 +539,64 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
 	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 
-	for i, player := range g.context.player_updates {
+	for i := range 4 {
+		clr := player_palette[i % len(player_palette)]
+		padding := 5
+		// padding + player name truncated + spacing + is ready + padding
+		width := 8 * (padding + 8 + 1 + 1 + padding)
+		// padding + font size + padding
+		height := padding + 8 + padding
+
+		margin := 12
+
+		stroke_width := 2.0
 		textOp := text.DrawOptions{}
-		msg := fmt.Sprintf("%s is %s", player.ID[0:6], PlayerReadyString(player.Ready))
-		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i+3)*fontSize)
-		textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
-		text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+		msg := "waiting for player"
+		textOp.GeoM.Translate((RENDER_WIDTH/2) - float64(width/2), (RENDER_HEIGHT/2) + float64(i) * float64(fontSize + float64(margin*2) + stroke_width))
+		textOp.GeoM.Translate(fontSize, float64(padding))
+		textOp.ColorScale.ScaleWithColor(MISSING_PLAYER_COLOR)
+		if i >= len(g.context.player_updates) {
+			clr = MISSING_PLAYER_COLOR
+
+			vector.StrokeRect(screen, (RENDER_WIDTH/2) - float32(width/2), (RENDER_HEIGHT/2) + float32(i) * float32(fontSize + float64(margin*2) + stroke_width), float32(width), float32(height), float32(stroke_width), clr, true)
+			text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+
+		} else {
+			player := g.context.player_updates[i]
+
+			if g.nm.client.isSelf(player.ID) {
+				clr = PLAYER_COLOR
+			}
+
+			vector.StrokeRect(screen, (RENDER_WIDTH/2) - float32(width/2), (RENDER_HEIGHT/2) + float32(i) * float32(fontSize + float64(margin*2) + stroke_width), float32(width), float32(height), float32(stroke_width), clr, true)
+			msg = fmt.Sprintf("%s %s", player.ID[0:8], PlayerReadyString(player.Ready))
+			textOp.ColorScale.Reset()
+			text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+		}
 	}
 
 	// TODO draw time until start when all are ready
 }
 
+
+
+func (g *Game) DrawStripes(screen *ebiten.Image) {
+	screen.Fill(color.RGBA{R: 11, B: 11, G: 11, A: 255})
+
+	offset_x := SCREEN_WIDTH/ AMOUNT_OF_STRIPES / 2
+	for i := range AMOUNT_OF_STRIPES + 1{
+		op := ebiten.DrawImageOptions{}
+		x := offset_x * (i - 1) * 2
+		op.GeoM.Translate(float64(x) + float64(g.context.background_time / 4 % (offset_x * 2)), -SCREEN_WIDTH / 2)
+		op.GeoM.Rotate(45)
+		screen.DrawImage(stripe_texture, &op)
+	}
+}
+
+
 func (g *Game) DrawMainMenu(screen *ebiten.Image) {
+	g.DrawStripes(screen)
+
 	textOp := text.DrawOptions{}
 	msg := "  join game"
 	if g.context.current_selection == 0 {
@@ -558,6 +618,7 @@ func (g *Game) DrawMainMenu(screen *ebiten.Image) {
 }
 
 func (g *Game) DrawServerPicking(screen *ebiten.Image) {
+	g.DrawStripes(screen)
 	for i, server := range g.context.available_servers {
 		textOp := text.DrawOptions{}
 		msg := fmt.Sprintf("  %-10s| %d/%d", server.Name, server.Player_count, server.Max_players)
@@ -649,12 +710,19 @@ func (g *Game) GenerateNewPlayerId() {
 	g.sm.Save()
 }
 
+func (g *Game) InitStripeTexture() {
+	vector.DrawFilledRect(stripe_texture, 0, 0, float32(SCREEN_WIDTH / AMOUNT_OF_STRIPES / 2), SCREEN_HEIGHT, STRIPE_COLOR, true)
+}
+
+
 func GameInit() *Game {
 	am := &AssetManager{}
 	am.Init("temp.json")
 
 	game := Game{}
 	game.am = am
+
+	game.InitStripeTexture()
 
 	tank := Tank{
 		TankMinimal:        TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
