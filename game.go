@@ -477,7 +477,7 @@ func (g *Game) DrawGameplay(screen *ebiten.Image) {
 		offset := float64(8)
 		opacity := float32(track.lifetime) / float32(TRACK_LIFETIME)
 		g.context.draw_data = append(g.context.draw_data, DrawData{
-			path:      g.tank.track_sprites_path,
+			sprite:    g.tank.track_sprite,
 			position:  Position{x, y - offset},
 			rotation:  track.rotation - g.camera.rotation,
 			intensity: 1,
@@ -653,16 +653,16 @@ func GameInit() *Game {
 	tank := Tank{
 		TankMinimal:        TankMinimal{Position: Position{}, Life: 10, Rotation: 0.001},
 		sprites_path:       "assets/sprites/stacks/tank.png",
-		track_sprites_path: "assets/sprites/tracks.png",
+		track_sprite:       am.GetSprites("assets/sprites/tracks.png")[0],
 		dead_sprites_path:  "assets/sprites/stacks/tank-broken.png",
 		turret: Turret{
 			sprites_path: "assets/sprites/stacks/tank-barrel.png",
 		},
 	}
 
-	tank.Component.Set(LoaderMask, LoaderAutoloader)
-	tank.Component.Set(BarrelMask, BarrelHeavy)
-	tank.Component.Set(BulletMask, uint8(BulletTypeStandard))
+	tank.Component.Set(LoaderMask, 1)
+	tank.Component.Set(BarrelMask, 1)
+	tank.Component.Set(BulletMask, 1)
 	tank.Component.Set(TracksMask, 1)
 
 	game.tank = tank
