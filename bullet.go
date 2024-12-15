@@ -107,8 +107,8 @@ func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) 
 
 func (bm *BulletManager) AddBullet(bullet Bullet) {
 	bullet.grace_period = bm.DetermineGracePeriod(bullet.Bullet_type)
-	bullet.num_bounces = bm.DetermineNumBounces(bullet.Bullet_type)
-	bullet.velocity = bm.DetermineVelocity(bullet.Bullet_type)
+	bullet.num_bounces = DetermineNumBounces(bullet.Bullet_type)
+	bullet.velocity = DetermineVelocity(bullet.Bullet_type)
 
 	if bm.particle_manager != nil {
 		bm.particle_manager.AddParticle(
@@ -135,7 +135,7 @@ func (bm *BulletManager) DetermineGracePeriod(bullet_type BulletTypeEnum) int {
 	}
 }
 
-func (bm *BulletManager) DetermineNumBounces(bullet_type BulletTypeEnum) int {
+func DetermineNumBounces(bullet_type BulletTypeEnum) int {
 	switch bullet_type {
 	case BulletTypeFast:
 		return 1
@@ -144,7 +144,7 @@ func (bm *BulletManager) DetermineNumBounces(bullet_type BulletTypeEnum) int {
 	}
 }
 
-func (bm *BulletManager) DetermineVelocity(bullet_type BulletTypeEnum) float64 {
+func DetermineVelocity(bullet_type BulletTypeEnum) float64 {
 	switch bullet_type {
 	case BulletTypeFast:
 		return 3
@@ -179,6 +179,25 @@ func DetermineBulletName(bullet_type BulletTypeEnum) string {
 		return "standard"
 	default:
 		return "missing!"
+	}
+}
+
+func DetermineBulletDesc(bullet_type BulletTypeEnum) string {
+	switch bullet_type {
+	case BulletTypeFast:
+		return "Fast travelling bullet,\n with longer reload time"
+	case BulletTypeStandard:
+		return "Standard-issue bullet, Pew Pew!"
+	default:
+		return "missing!"
+	}
+}
+
+func DetermineBulletStats(bullet_type BulletTypeEnum) string {
+	switch bullet_type {
+	default:
+		return fmt.Sprintf("\n - Magazine: %d\n - Reload speed: %.1fs\n - Bullet speed: %.1f",
+			DetermineBaseMagSize(bullet_type), DetermineBaseReloadSpeed(bullet_type), DetermineVelocity(bullet_type))
 	}
 }
 

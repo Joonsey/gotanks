@@ -176,6 +176,8 @@ func (t *Tank) Update(g *Game) {
 	bulletType := BulletTypeEnum(t.Get(BulletMask))
 
 	base_reload_speed := DetermineBaseReloadSpeed(bulletType)
+	reload_speed_multiplier := DetermineReloadSpeedMultiplier(loaderType)
+	effective_reload_speed := base_reload_speed * reload_speed_multiplier
 
 	switch loaderType {
 	case LoaderAutoloader:
@@ -188,7 +190,7 @@ func (t *Tank) Update(g *Game) {
 				t.IsReloading = false
 			}
 		} else if t.BulletsInMagazine <= 0 {
-			t.StartReload(base_reload_speed * 5) // Example: 3 seconds to reload with autoloader
+			t.StartReload(effective_reload_speed) // Example: 3 seconds to reload with autoloader
 		}
 
 	case LoaderFastReload:
@@ -201,7 +203,7 @@ func (t *Tank) Update(g *Game) {
 				t.IsReloading = false
 			}
 		} else if t.BulletsInMagazine < t.MaxBulletsInMagazine {
-			t.StartReload(base_reload_speed) // Example: 1 second per bullet
+			t.StartReload(effective_reload_speed) // Example: 1 second per bullet
 		}
 
 	case LoaderManualReload:
@@ -214,7 +216,7 @@ func (t *Tank) Update(g *Game) {
 				t.IsReloading = false
 			}
 		} else if t.BulletsInMagazine < t.MaxBulletsInMagazine {
-			t.StartReload(base_reload_speed * 2) // Example: base reload time for manual reload
+			t.StartReload(effective_reload_speed) // Example: base reload time for manual reload
 		}
 	}
 
@@ -273,7 +275,7 @@ func (t *Tank) Reset() {
 	loaderType := t.Get(LoaderMask)
 	bulletType := BulletTypeEnum(t.Get(BulletMask))
 
-	t.MaxBulletsInMagazine = DetermineBaseMagSize(bulletType) * DetermineMaxMagMultiplier(loaderType)
+	t.MaxBulletsInMagazine = DetermineBaseMagSize(bulletType) * int(math.Floor(DetermineMaxMagMultiplier(loaderType)))
 	t.Life = 10
 	t.BulletsInMagazine = t.MaxBulletsInMagazine
 	t.ReloadTime = 0

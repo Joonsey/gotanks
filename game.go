@@ -264,6 +264,8 @@ func (g *Game) UpdateGameplay() error {
 }
 
 func (g *Game) UpdateTankLoadout() error {
+	g.context.background_time++
+
 	if g.nm.client.isConnected() {
 		g.nm.client.KeepAlive(g)
 	}
@@ -287,6 +289,7 @@ func (g *Game) UpdateTankLoadout() error {
 	}
 
 	incr_key := ebiten.KeyD
+	decr_key := ebiten.KeyA
 	switch g.context.current_selection {
 	case 0:
 		if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
@@ -300,18 +303,42 @@ func (g *Game) UpdateTankLoadout() error {
 	case 1:
 		if inpututil.IsKeyJustPressed(incr_key) {
 			g.tank.Set(LoaderMask, max((loader_type+1)%LoaderEnd, 1))
+		} else if inpututil.IsKeyJustPressed(decr_key) {
+			if loader_type <= 1 {
+				g.tank.Set(LoaderMask, LoaderEnd-1)
+			} else {
+				g.tank.Set(LoaderMask, loader_type-1)
+			}
 		}
 	case 2:
 		if inpututil.IsKeyJustPressed(incr_key) {
 			g.tank.Set(BulletMask, max((bullet_type+1)%uint8(BulletTypeEnd), 1))
+		} else if inpututil.IsKeyJustPressed(decr_key) {
+			if bullet_type <= 1 {
+				g.tank.Set(BulletMask, uint8(BulletTypeEnd)-1)
+			} else {
+				g.tank.Set(BulletMask, bullet_type-1)
+			}
 		}
 	case 3:
 		if inpututil.IsKeyJustPressed(incr_key) {
 			g.tank.Set(BarrelMask, max((barrel_type+1)%BarrelEnd, 1))
+		} else if inpututil.IsKeyJustPressed(decr_key) {
+			if barrel_type <= 1 {
+				g.tank.Set(BarrelMask, BarrelEnd-1)
+			} else {
+				g.tank.Set(BarrelMask, barrel_type-1)
+			}
 		}
 	case 4:
 		if inpututil.IsKeyJustPressed(incr_key) {
 			g.tank.Set(TracksMask, max((track_type+1)%TracksEnd, 1))
+		} else if inpututil.IsKeyJustPressed(decr_key) {
+			if track_type <= 1 {
+				g.tank.Set(TracksMask, TracksEnd-1)
+			} else {
+				g.tank.Set(TracksMask, track_type-1)
+			}
 		}
 	}
 
@@ -534,10 +561,21 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 	fontSize := 8.
 
 	textOp := text.DrawOptions{}
-	msg := fmt.Sprintf("server name: '%s'", g.context.current_server.Name)
-	textOp.GeoM.Translate(RENDER_WIDTH/2, float64(1)*fontSize)
-	textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
-	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+	msg := fmt.Sprintf("server: '%s'", g.context.current_server.Name)
+	textOp.GeoM.Translate(1, 1)
+	font_face := &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}
+
+	text.Draw(screen, msg, font_face, &textOp)
+
+	textOp = text.DrawOptions{}
+	msg = "[TAB] loadout"
+	textOp.GeoM.Translate(1, RENDER_HEIGHT-(fontSize+1))
+	text.Draw(screen, msg, font_face, &textOp)
+
+	textOp = text.DrawOptions{}
+	msg = "[R]   ready/not ready"
+	textOp.GeoM.Translate(1, RENDER_HEIGHT-(fontSize+1)*2)
+	text.Draw(screen, msg, font_face, &textOp)
 
 	for i := range 4 {
 		clr := player_palette[i%len(player_palette)]
@@ -559,7 +597,7 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 			clr = MISSING_PLAYER_COLOR
 
 			vector.StrokeRect(screen, (RENDER_WIDTH/2)-float32(width/2), (RENDER_HEIGHT/2)+float32(i)*float32(fontSize+float64(margin*2)+stroke_width), float32(width), float32(height), float32(stroke_width), clr, true)
-			text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+			text.Draw(screen, msg, font_face, &textOp)
 
 		} else {
 			player := g.context.player_updates[i]
@@ -571,7 +609,7 @@ func (g *Game) DrawLobby(screen *ebiten.Image) {
 			vector.StrokeRect(screen, (RENDER_WIDTH/2)-float32(width/2), (RENDER_HEIGHT/2)+float32(i)*float32(fontSize+float64(margin*2)+stroke_width), float32(width), float32(height), float32(stroke_width), clr, true)
 			msg = fmt.Sprintf("%s %s", player.ID[0:8], PlayerReadyString(player.Ready))
 			textOp.ColorScale.Reset()
-			text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+			text.Draw(screen, msg, font_face, &textOp)
 		}
 	}
 
@@ -639,38 +677,90 @@ func (g *Game) DrawServerPicking(screen *ebiten.Image) {
 	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 }
 
+func (g *Game) DrawTankLoadoutInfoScreen(screen *ebiten.Image, mask uint32) {
+
+	y_offset := float32(100)
+	x_padding := float32(200)
+	x_offset := float32(0)
+	bg_clr := color.RGBA{R: 0, G: 0, B: 0, A: 200}
+	vector.DrawFilledRect(screen, RENDER_WIDTH/2+x_offset-x_padding, y_offset, x_padding*2, 150, bg_clr, true)
+	vector.StrokeRect(screen, RENDER_WIDTH/2+x_offset-x_padding, y_offset, x_padding*2, 150, 2, STRIPE_COLOR, true)
+
+	text_padding := 8.
+	textOp := text.DrawOptions{}
+	fontSize := 8.
+	textOp.GeoM.Translate(float64(RENDER_WIDTH/2+x_offset-x_padding)+text_padding, float64(y_offset)+text_padding)
+	textOp.LineSpacing = fontSize
+
+	t := g.tank.Get(mask)
+
+	msg := "Bullet: standard\n\nDescription: Standard-issue slower traveling,\nbut higher base magasine size.\n\nStats: "
+	switch mask {
+	case LoaderMask:
+		msg = fmt.Sprintf("%s: %s\n\nDescription: %s\n\nStats: %s",
+			"Loader", DetermineLoaderName(t), DetermineLoaderDesc(t), DetermineLoaderStats(t))
+	case BulletMask:
+		bt := BulletTypeEnum(t)
+		msg = fmt.Sprintf("%s: %s\n\nDescription: %s\n\nStats: %s",
+			"Bullet", DetermineBulletName(bt), DetermineBulletDesc(bt), DetermineBulletStats(bt))
+	case BarrelMask:
+		msg = fmt.Sprintf("%s: %s\n\nDescription: %s\n\nStats: %s",
+			"Barrel", "TODO", "TODO", "TODO")
+	case TracksMask:
+		msg = fmt.Sprintf("%s: %s\n\nDescription: %s\n\nStats: %s",
+			"Tracks", "TODO", "TODO", "TODO")
+	default:
+		return
+	}
+
+	text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
+
+}
+
 func (g *Game) DrawTankLoadout(screen *ebiten.Image) {
+	g.DrawStripes(screen)
+
 	for i := range 4 {
 		textOp := text.DrawOptions{}
 		var msg string = ""
+		var mask uint32 = 0
 		switch i {
 		case 0:
-			msg = fmt.Sprintf("loadout: %s\n", DetermineLoaderName(g.tank.Get(LoaderMask)))
+			mask = LoaderMask
+			msg = fmt.Sprintf("loader: < %s >", DetermineLoaderName(g.tank.Get(mask)))
 		case 1:
-			msg = fmt.Sprintf("bullet: %s\n", DetermineBulletName(BulletTypeEnum(g.tank.Get(BulletMask))))
+			mask = BulletMask
+			msg = fmt.Sprintf("bullet: < %s >", DetermineBulletName(BulletTypeEnum(g.tank.Get(mask))))
 		case 2:
-			msg = fmt.Sprintf("TEMP: bullet: %s\n", DetermineBulletName(BulletTypeEnum(g.tank.Get(BarrelMask))))
+			mask = BarrelMask
+			msg = fmt.Sprintf("barrel: < %s >", DetermineBulletName(BulletTypeEnum(g.tank.Get(mask))))
 		case 3:
-			msg = fmt.Sprintf("TEMP: bullet: %s\n", DetermineBulletName(BulletTypeEnum(g.tank.Get(TracksMask))))
+			mask = TracksMask
+			msg = fmt.Sprintf("tracks: < %s >", DetermineBulletName(BulletTypeEnum(g.tank.Get(TracksMask))))
 		}
 
 		if i+1 == g.context.current_selection {
+			g.DrawTankLoadoutInfoScreen(screen, mask)
+
 			msg = fmt.Sprintf("* %s", msg)
 		} else {
 			msg = fmt.Sprintf("  %s", msg)
 		}
 		fontSize := 8.
-		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i)*fontSize+200)
-		textOp.GeoM.Translate(-float64(len(msg)/2)*fontSize, fontSize)
+		margin := 2
+		textOp.GeoM.Translate(RENDER_WIDTH/2, float64(i)*fontSize+250)
+		textOp.GeoM.Translate(-200, fontSize+float64(margin))
 		text.Draw(screen, msg, &text.GoTextFace{Source: g.am.new_level_font, Size: fontSize}, &textOp)
 	}
 
-	msg := "  back to menu"
+	msg := "back to menu"
 	if g.nm.client.isConnected() {
-		msg = "  back to lobby"
+		msg = "back to lobby"
 	}
 	if g.context.current_selection == 0 {
 		msg = fmt.Sprintf("* %s", msg)
+	} else {
+		msg = fmt.Sprintf("  %s", msg)
 	}
 	fontSize := 8.
 	textOp := text.DrawOptions{}
