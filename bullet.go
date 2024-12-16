@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"gotanks/shared"
 	"log"
 	"math"
 	"sync"
@@ -66,7 +67,7 @@ func (bm *BulletManager) Shoot(bullet Bullet) {
 		bm.AddBullet(bullet)
 		return
 	}
-	err := bm.network_manager.client.Send(PacketTypeBulletShoot, bullet)
+	err := bm.network_manager.client.Send(shared.PacketTypeBulletShoot, bullet)
 	if err != nil {
 		log.Panic(err)
 	}

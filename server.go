@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"errors"
+	"gotanks/shared"
 	"log"
 	"math/rand"
 	"net"
@@ -92,7 +93,7 @@ type Server struct {
 	accepts_new_connections bool
 	update_count            int
 
-	packet_channel    chan PacketData
+	packet_channel    chan shared.PacketData
 	connected_players ConnectedPlayers
 
 	bm    BulletManager
@@ -116,7 +117,7 @@ func StartServer(name string) {
 
 	server.conn = conn
 
-	server.packet_channel = make(chan PacketData)
+	server.packet_channel = make(chan shared.PacketData)
 	server.connected_players.m = make(map[string]ConnectedPlayer)
 
 	server.accepts_new_connections = true
@@ -153,37 +154,37 @@ func (s *Server) Listen() {
 			log.Panic("error reading from connection:", err)
 		}
 
-		packet, data, err := DeserializePacket(buf[:n])
+		packet, data, err := shared.DeserializePacket(buf[:n])
 		if err != nil {
 			log.Panic("error reading from connection:", err)
 		}
 
-		packet_data := PacketData{packet, data, *addr}
+		packet_data := shared.PacketData{Packet: packet, Data: data, Addr: *addr}
 		s.packet_channel <- packet_data
 	}
 }
 
 func (s *Server) UpdateMediator() {
-	data := AvailableServer{Player_count: len(s.connected_players.m), Max_players: 4, Name: s.Name}
-	raw_data, err := SerializePacket(Packet{PacketType: PacketTypeUpdateMediator}, [16]byte{}, data)
+	data := shared.AvailableServer{Player_count: len(s.connected_players.m), Max_players: 4, Name: s.Name}
+	raw_data, err := shared.SerializePacket(shared.Packet{PacketType: shared.PacketTypeUpdateMediator}, [16]byte{}, data)
 	if err != nil {
 		log.Panic("failed to serialize packet")
 	}
 	s.conn.WriteToUDP(raw_data, s.mediator_addr)
 }
 func (s *Server) KeepAliveMediator() {
-	raw_data, err := SerializePacket(Packet{PacketType: PacketTypeKeepAlive}, [16]byte{}, []byte{})
+	raw_data, err := shared.SerializePacket(shared.Packet{PacketType: shared.PacketTypeKeepAlive}, [16]byte{}, []byte{})
 	if err != nil {
 		log.Panic("failed to serialize packet")
 	}
 	s.conn.WriteToUDP(raw_data, s.mediator_addr)
 }
 
-func (s *Server) Broadcast(packet Packet, data interface{}) {
+func (s *Server) Broadcast(packet shared.Packet, data interface{}) {
 	s.connected_players.RLock()
 	defer s.connected_players.RUnlock()
 
-	raw_data, err := SerializePacket(packet, [16]byte{}, data)
+	raw_data, err := shared.SerializePacket(packet, [16]byte{}, data)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -193,10 +194,10 @@ func (s *Server) Broadcast(packet Packet, data interface{}) {
 	}
 }
 
-func (s *Server) HandlePacket(packet_data PacketData) {
+func (s *Server) HandlePacket(packet_data shared.PacketData) {
 	dec := gob.NewDecoder(bytes.NewReader(packet_data.Data))
 	switch packet_data.Packet.PacketType {
-	case PacketTypeBulletShoot:
+	case shared.PacketTypeBulletShoot:
 		bullet := Bullet{}
 		err := dec.Decode(&bullet)
 		if err != nil {
@@ -205,37 +206,37 @@ func (s *Server) HandlePacket(packet_data PacketData) {
 
 		s.Broadcast(packet_data.Packet, bullet)
 		s.bm.AddBullet(bullet)
-	case PacketTypeUpdateCurrentPlayer:
+	case shared.PacketTypeUpdateCurrentPlayer:
 		s.connected_players.Lock()
-		player := s.connected_players.m[AuthToString(packet_data.Packet.Auth)]
+		player := s.connected_players.m[shared.AuthToString(packet_data.Packet.Auth)]
 		err := dec.Decode(&player.tank)
 		if err != nil {
 			log.Panic("error decoding player", err)
 		}
-		s.connected_players.m[AuthToString(packet_data.Packet.Auth)] = player
+		s.connected_players.m[shared.AuthToString(packet_data.Packet.Auth)] = player
 		s.connected_players.Unlock()
-	case PacketTypeClientToggleReady:
+	case shared.PacketTypeClientToggleReady:
 		s.connected_players.Lock()
-		player := s.connected_players.m[AuthToString(packet_data.Packet.Auth)]
+		player := s.connected_players.m[shared.AuthToString(packet_data.Packet.Auth)]
 		if NetBoolify(player.ready) {
 			player.ready = NetBoolFalse
 		} else {
 			player.ready = NetBoolTrue
 		}
 
-		s.connected_players.m[AuthToString(packet_data.Packet.Auth)] = player
+		s.connected_players.m[shared.AuthToString(packet_data.Packet.Auth)] = player
 		s.connected_players.Unlock()
-	case PacketTypeDisconnect:
+	case shared.PacketTypeDisconnect:
 		s.connected_players.Lock()
-		delete(s.connected_players.m, AuthToString(packet_data.Packet.Auth))
+		delete(s.connected_players.m, shared.AuthToString(packet_data.Packet.Auth))
 		s.connected_players.Unlock()
-	case PacketTypeMatchConnect:
+	case shared.PacketTypeMatchConnect:
 		var addr net.UDPAddr
 		err := dec.Decode(&addr)
 		if err != nil {
 			log.Panic("error during decoding", err)
 		}
-		data_bytes, err := SerializePacket(Packet{PacketType: PacketTypeMatchConnect}, [16]byte{}, []byte{})
+		data_bytes, err := shared.SerializePacket(shared.Packet{PacketType: shared.PacketTypeMatchConnect}, [16]byte{}, []byte{})
 		if err != nil {
 			log.Panic("error during serializing", err)
 		}
@@ -267,7 +268,7 @@ func (s *Server) UpdateServerLogic() {
 	}
 
 	if s.update_count%UPDATE_INTERVAL == 0 {
-		packet := Packet{PacketType: PacketTypeUpdatePlayers}
+		packet := shared.Packet{PacketType: shared.PacketTypeUpdatePlayers}
 
 		players := []PlayerUpdate{}
 		s.connected_players.RLock()
@@ -293,7 +294,7 @@ func (s *Server) UpdateServerLogic() {
 
 		bullet_hit := s.bm.IsColliding(value.tank.Position, Position{16, 16})
 		if bullet_hit != nil {
-			packet := Packet{PacketType: PacketTypePlayerHit}
+			packet := shared.Packet{PacketType: shared.PacketTypePlayerHit}
 			data := BulletHit{Player: key, Bullet_ID: bullet_hit.ID}
 			s.connected_players.RUnlock()
 			s.Broadcast(packet, data)
@@ -317,7 +318,7 @@ func (s *Server) UpdateServerLogic() {
 	prior_state := s.state
 	new_state := s.CheckServerState()
 	if prior_state != new_state {
-		packet := Packet{PacketType: PacketTypeServerStateChanged}
+		packet := shared.Packet{PacketType: shared.PacketTypeServerStateChanged}
 		s.Broadcast(packet, new_state)
 	}
 
@@ -412,8 +413,8 @@ func (s *Server) StartNewRound() *Round {
 }
 
 func (s *Server) TellMediator() {
-	data := ReconcilliationData{Name: s.Name}
-	raw_data, err := SerializePacket(Packet{PacketType: PacketTypeMatchHost}, [16]byte{}, data)
+	data := shared.ReconcilliationData{Name: s.Name}
+	raw_data, err := shared.SerializePacket(shared.Packet{PacketType: shared.PacketTypeMatchHost}, [16]byte{}, data)
 	if err != nil {
 		log.Panic("failed to serialize packet")
 	}
@@ -428,7 +429,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 	case ServerGameStateWaitingInLobby:
 		ready, total := s.GetReadyPlayers()
 		if after_grace_period && total > 1 && len(ready) == total {
-			packet := Packet{PacketType: PacketTypeNewMatch}
+			packet := shared.Packet{PacketType: shared.PacketTypeNewMatch}
 			new_state = ServerGameStateStartingNewMatch
 			wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
 			event := NewMatchEvent{
@@ -458,7 +459,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 				new_state = ServerGameStateGameOver
 				wait_time := time.Now().Add(time.Second * GAME_OVER_INTERVAL_S)
 
-				packet := Packet{PacketType: PacketTypeGameOver}
+				packet := shared.Packet{PacketType: shared.PacketTypeGameOver}
 				event := NewRoundEvent{
 					Timestamp: wait_time,
 					Level:     s.DetermineNextLevel(),
@@ -467,7 +468,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 				s.wait_time = wait_time
 				s.Broadcast(packet, event)
 			} else {
-				packet := Packet{PacketType: PacketTypeNewRound}
+				packet := shared.Packet{PacketType: shared.PacketTypeNewRound}
 				spawns := s.GetSpawnMap()
 				wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
 				event := NewRoundEvent{
@@ -489,7 +490,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 			s.sm.stats.Matches = append(s.sm.stats.Matches, s.StartNewMatch())
 			new_state = ServerGameStateStartingNewRound
 			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
-			packet := Packet{PacketType: PacketTypeNewRound}
+			packet := shared.Packet{PacketType: shared.PacketTypeNewRound}
 			spawns := s.GetSpawnMap()
 			wait_time := time.Now().Add(time.Second * NEW_LEVEL_INTERVAL_S)
 			event := NewRoundEvent{
@@ -526,7 +527,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 	return s.state
 }
 
-func (s *Server) AuthorizePacket(packet_data PacketData) error {
+func (s *Server) AuthorizePacket(packet_data shared.PacketData) error {
 	s.connected_players.Lock()
 	defer s.connected_players.Unlock()
 	// this is the mediator server, typically
@@ -534,7 +535,7 @@ func (s *Server) AuthorizePacket(packet_data PacketData) error {
 		return nil
 	}
 
-	auth := AuthToString(packet_data.Packet.Auth)
+	auth := shared.AuthToString(packet_data.Packet.Auth)
 
 	for key, _ := range s.connected_players.m {
 		if key == auth {

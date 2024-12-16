@@ -1,4 +1,4 @@
-package game
+package shared
 
 import (
 	"bytes"
@@ -29,6 +29,15 @@ type PacketData struct {
 }
 
 const MAGICBYTES = 73458339
+
+type AvailableServer struct {
+	Ip   string
+	Port int
+	Name string
+
+	Player_count int
+	Max_players  int
+}
 
 type ReconcilliationData struct {
 	Name string

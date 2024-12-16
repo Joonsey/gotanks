@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
+	"gotanks/shared"
 	"image"
 	"image/color"
 	"log"
@@ -71,13 +72,13 @@ type GameContext struct {
 	new_level_time time.Time
 	game_over_time time.Time
 
-	available_servers []AvailableServer
+	available_servers [] shared.AvailableServer
 	current_state     GameStateEnum
 	current_selection int
 	isReady           bool
 	background_time   int
 
-	current_server *AvailableServer
+	current_server *shared.AvailableServer
 }
 
 type Game struct {
@@ -353,7 +354,7 @@ func (g *Game) UpdateLobby() error {
 	g.nm.client.KeepAlive(g)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		g.nm.client.Send(PacketTypeClientToggleReady, []byte{})
+		g.nm.client.Send(shared.PacketTypeClientToggleReady, []byte{})
 	}
 
 	if !g.nm.client.isConnected() {
@@ -405,7 +406,7 @@ func (g *Game) HostServer() {
 	name := CreateServerName()
 	go StartServer(name)
 	g.context.current_state = GameStateLobby
-	g.context.current_server = &AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Name: name, Player_count: 0, Max_players: 2}
+	g.context.current_server = &shared.AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Name: name, Player_count: 0, Max_players: 2}
 	g.nm.client.Connect(*g.context.current_server)
 }
 

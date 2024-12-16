@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
+	"gotanks/shared"
 	"log"
 	"math/rand"
 	"net"
@@ -33,7 +34,7 @@ type Client struct {
 	conn   *net.UDPConn
 	target *net.UDPAddr
 
-	packet_channel chan PacketData
+	packet_channel chan shared.PacketData
 	is_connected   bool
 	server_state   ServerGameStateEnum
 	wins           map[string]int
@@ -41,17 +42,9 @@ type Client struct {
 
 	time_last_packet time.Time
 
-	available_servers []AvailableServer
+	available_servers []shared.AvailableServer
 }
 
-type AvailableServer struct {
-	Ip   string
-	Port int
-	Name string
-
-	Player_count int
-	Max_players  int
-}
 
 type NetworkManager struct {
 	client *Client
@@ -69,7 +62,7 @@ func InitNetworkManager() *NetworkManager {
 	}
 
 	nm.client = &Client{}
-	nm.client.packet_channel = make(chan PacketData)
+	nm.client.packet_channel = make(chan shared.PacketData)
 	nm.client.wins = make(map[string]int)
 	nm.client.conn = conn
 
@@ -94,7 +87,7 @@ func InitNetworkManager() *NetworkManager {
 				}
 			} else {
 				time.Sleep(time.Second * 2)
-				data_bytes, err := SerializePacket(Packet{PacketType: PacketTypeAvailableHosts}, *nm.client.Auth, []byte{})
+				data_bytes, err := shared.SerializePacket(shared.Packet{PacketType: shared.PacketTypeAvailableHosts}, *nm.client.Auth, []byte{})
 				if err != nil {
 					log.Println("unable to serialize packet, but we don't break for that reason")
 					continue
@@ -107,16 +100,16 @@ func InitNetworkManager() *NetworkManager {
 }
 
 func (c *Client) isSelf(id string) bool {
-	return AuthToString(*c.Auth) == id
+	return shared.AuthToString(*c.Auth) == id
 }
 
-func (c *Client) Send(packet_type PacketType, data interface{}) error {
+func (c *Client) Send(packet_type shared.PacketType, data interface{}) error {
 	if !c.isConnected() {
 		return errors.New("tried to send without being connected")
 	}
-	packet := Packet{}
+	packet := shared.Packet{}
 	packet.PacketType = packet_type
-	data_bytes, err := SerializePacket(packet, *c.Auth, data)
+	data_bytes, err := shared.SerializePacket(packet, *c.Auth, data)
 
 	if err != nil {
 		return err
@@ -134,24 +127,24 @@ func (c *Client) Listen() {
 			log.Panic("error reading from connection:", err)
 		}
 
-		packet, data, err := DeserializePacket(buf[:n])
+		packet, data, err := shared.DeserializePacket(buf[:n])
 		if err != nil {
 			log.Panic("error reading from connection:", err)
 		}
 
-		packet_data := PacketData{packet, data, *addr}
+		packet_data := shared.PacketData{Packet: packet, Data: data, Addr: *addr}
 		c.packet_channel <- packet_data
 	}
 }
 
-func (c *Client) Connect(server AvailableServer) {
+func (c *Client) Connect(server shared.AvailableServer) {
 	if c.isConnected() {
 		log.Panic("tried to connect while already connected")
 	}
 	c.target = &net.UDPAddr{IP: net.ParseIP(server.Ip), Port: server.Port}
 
-	data := ReconcilliationData{Name: server.Name}
-	data_bytes, _ := SerializePacket(Packet{PacketType: PacketTypeMatchConnect}, *c.Auth, data)
+	data := shared.ReconcilliationData{Name: server.Name}
+	data_bytes, _ := shared.SerializePacket(shared.Packet{PacketType: shared.PacketTypeMatchConnect}, *c.Auth, data)
 	c.conn.WriteToUDP(data_bytes, &net.UDPAddr{IP: net.ParseIP(MEDIATOR_ADDR), Port: MEDIATOR_PORT})
 	c.is_connected = true
 }
@@ -160,7 +153,7 @@ func (c *Client) Disconnect() {
 	if !c.isConnected() {
 		log.Panic("tried to disconnect while not connected")
 	}
-	c.Send(PacketTypeDisconnect, "disconnect")
+	c.Send(shared.PacketTypeDisconnect, "disconnect")
 	c.is_connected = false
 	c.target = nil
 }
@@ -170,21 +163,21 @@ func (c *Client) Loop(game *Game) {
 		select {
 		case packet_data := <-c.packet_channel:
 			c.HandlePacket(packet_data, game)
-			if packet_data.Packet.PacketType != PacketTypeAvailableHosts {
+			if packet_data.Packet.PacketType != shared.PacketTypeAvailableHosts {
 				c.time_last_packet = time.Now()
 			}
 		}
 	}
 }
 
-func (c *Client) GetServerList(game *Game) []AvailableServer {
+func (c *Client) GetServerList(game *Game) []shared.AvailableServer {
 	// TODO
 	return c.available_servers
 }
 
 func (c *Client) KeepAlive(game *Game) {
 	if int(game.time*100)%KEEPALIVE_INTERVAL == 0 {
-		c.Send(PacketTypeKeepAlive, []byte{})
+		c.Send(shared.PacketTypeKeepAlive, []byte{})
 	}
 }
 
@@ -258,10 +251,10 @@ func (c *Client) IncrementWin(winner string) {
 	}
 }
 
-func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
+func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 	dec := gob.NewDecoder(bytes.NewReader(packet_data.Data))
 	switch packet_data.Packet.PacketType {
-	case PacketTypeBulletShoot:
+	case shared.PacketTypeBulletShoot:
 		bullet := Bullet{}
 		err := dec.Decode(&bullet)
 		if err != nil {
@@ -269,12 +262,12 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 		}
 
 		game.bm.AddBullet(bullet)
-	case PacketTypeUpdatePlayers:
+	case shared.PacketTypeUpdatePlayers:
 		err := dec.Decode(&game.context.player_updates)
 		if err != nil {
 			log.Panic("error decoding player updates", err)
 		}
-	case PacketTypePlayerHit:
+	case shared.PacketTypePlayerHit:
 		hit := BulletHit{}
 		err := dec.Decode(&hit)
 		if err != nil {
@@ -323,7 +316,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			})
 
 		delete(game.bm.bullets, hit.Bullet_ID)
-	case PacketTypeNewRound:
+	case shared.PacketTypeNewRound:
 		event := NewRoundEvent{Spawns: map[string]Position{}}
 		err := dec.Decode(&event)
 		if err != nil {
@@ -332,7 +325,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 
 		c.IncrementWin(event.Winner)
 
-		spawn, ok := event.Spawns[AuthToString(*c.Auth)]
+		spawn, ok := event.Spawns[shared.AuthToString(*c.Auth)]
 		if !ok {
 			log.Panic("could not find spawn in spawn map ", event.Spawns)
 		}
@@ -344,7 +337,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			game.tank.Respawn(spawn)
 			game.Reset()
 		}()
-	case PacketTypeNewMatch:
+	case shared.PacketTypeNewMatch:
 		event := NewMatchEvent{}
 		err := dec.Decode(&event)
 		if err != nil {
@@ -357,14 +350,14 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			}
 			game.Reset()
 		}()
-	case PacketTypeServerStateChanged:
+	case shared.PacketTypeServerStateChanged:
 		err := dec.Decode(&c.server_state)
 		if err != nil {
 			log.Panic("error decoding new server state")
 		}
-	case PacketTypeBackToLobby:
+	case shared.PacketTypeBackToLobby:
 		game.context.current_state = GameStateLobby
-	case PacketTypeGameOver:
+	case shared.PacketTypeGameOver:
 		event := NewRoundEvent{Spawns: map[string]Position{}}
 		err := dec.Decode(&event)
 		if err != nil {
@@ -379,7 +372,7 @@ func (c *Client) HandlePacket(packet_data PacketData, game *Game) {
 			game.context.current_state = GameStateLobby
 			game.Reset()
 		}()
-	case PacketTypeAvailableHosts:
+	case shared.PacketTypeAvailableHosts:
 		err := dec.Decode(&c.available_servers)
 		if err != nil {
 			log.Panic("error decoding new server state")

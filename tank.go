@@ -1,6 +1,7 @@
 package game
 
 import (
+	"gotanks/shared"
 	"image/color"
 	"math"
 
@@ -244,7 +245,7 @@ func (t *Tank) Update(g *Game) {
 
 	if g.nm.client.isConnected() {
 		if int(g.time*100)%UPDATE_INTERVAL == 0 {
-			go g.nm.client.Send(PacketTypeUpdateCurrentPlayer, t.TankMinimal)
+			go g.nm.client.Send(shared.PacketTypeUpdateCurrentPlayer, t.TankMinimal)
 		}
 	}
 
