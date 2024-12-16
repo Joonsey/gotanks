@@ -841,9 +841,6 @@ func GameInit(mediator_addr string) *Game {
 	game.gm = &GrassManager{}
 	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)
 
-	temp_spawn_obj := game.level.spawns[0]
-	game.tank.Position = Position{temp_spawn_obj.X, temp_spawn_obj.Y}
-
 	game.context.current_state = GameStateMainMenu
 
 	go game.nm.client.Listen()
