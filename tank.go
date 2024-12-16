@@ -175,6 +175,7 @@ func (t *Tank) Update(g *Game) {
 
 	loaderType := t.Get(LoaderMask)
 	bulletType := BulletTypeEnum(t.Get(BulletMask))
+	barrelType := t.Get(BarrelMask)
 
 	base_reload_speed := DetermineBaseReloadSpeed(bulletType)
 	reload_speed_multiplier := DetermineReloadSpeedMultiplier(loaderType)
@@ -240,6 +241,10 @@ func (t *Tank) Update(g *Game) {
 		bullet.Rotation = -rel_rotation + -g.camera.rotation + math.Pi
 		bullet.Bullet_type = bulletType
 
+		// TODO consider moving this initialization to server side
+		// for 'security' / 'integrity'
+		bullet.Num_bounces = DetermineNumBounces(bullet.Bullet_type) + DetermineAdditionalBounces(barrelType)
+		bullet.Velocity = DetermineVelocity(bullet.Bullet_type) * DetermineVelocityMultiplier(barrelType)
 		g.bm.Shoot(bullet)
 	}
 

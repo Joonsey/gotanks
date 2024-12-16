@@ -63,13 +63,6 @@ const (
 )
 
 const (
-	BarrelStandard uint8 = iota + 1
-	BarrelSniper
-	BarrelHeavy
-	BarrelEnd
-)
-
-const (
 	TracksLight uint8 = iota + 1
 	TracksMedium
 	TracksHeavy

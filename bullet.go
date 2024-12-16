@@ -28,8 +28,8 @@ type Bullet struct {
 	Bullet_type BulletTypeEnum
 
 	grace_period int
-	num_bounces  int
-	velocity     float64
+	Num_bounces  int
+	Velocity     float64
 }
 
 type BulletHit struct {
@@ -108,8 +108,6 @@ func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) 
 
 func (bm *BulletManager) AddBullet(bullet Bullet) {
 	bullet.grace_period = bm.DetermineGracePeriod(bullet.Bullet_type)
-	bullet.num_bounces = DetermineNumBounces(bullet.Bullet_type)
-	bullet.velocity = DetermineVelocity(bullet.Bullet_type)
 
 	if bm.particle_manager != nil {
 		bm.particle_manager.AddParticle(
@@ -203,16 +201,16 @@ func DetermineBulletStats(bullet_type BulletTypeEnum) string {
 }
 
 func (b *Bullet) Update(level *Level, game *Game) *Bullet {
-	x, y := math.Sin(b.Rotation)*b.velocity, math.Cos(b.Rotation)*b.velocity
+	x, y := math.Sin(b.Rotation)*b.Velocity, math.Cos(b.Rotation)*b.Velocity
 
 	b.Position.Y += y
 	collided_object := level.CheckObjectCollisionWithDimensions(b.Position, Position{4, 4})
 	if collided_object != nil {
 		b.Rotation = math.Pi - b.Rotation
-		if b.num_bounces == 0 {
+		if b.Num_bounces == 0 {
 			return nil
 		}
-		b.num_bounces--
+		b.Num_bounces--
 		b.Position.Y -= y
 	}
 
@@ -220,10 +218,10 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 	collided_object = level.CheckObjectCollisionWithDimensions(b.Position, Position{4, 4})
 	if collided_object != nil {
 		b.Rotation = -b.Rotation
-		if b.num_bounces == 0 {
+		if b.Num_bounces == 0 {
 			return nil
 		}
-		b.num_bounces--
+		b.Num_bounces--
 		b.Position.X -= x
 	}
 

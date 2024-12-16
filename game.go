@@ -706,7 +706,7 @@ func (g *Game) DrawTankLoadoutInfoScreen(screen *ebiten.Image, mask uint32) {
 			"Bullet", DetermineBulletName(bt), DetermineBulletDesc(bt), DetermineBulletStats(bt))
 	case BarrelMask:
 		msg = fmt.Sprintf("%s: %s\n\nDescription: %s\n\nStats: %s",
-			"Barrel", "TODO", "TODO", "TODO")
+			"Barrel", DetermineBarrelName(t), DetermineBarrelDesc(t), DetermineBarrelStats(t))
 	case TracksMask:
 		msg = fmt.Sprintf("%s: %s\n\nDescription: %s\n\nStats: %s",
 			"Tracks", "TODO", "TODO", "TODO")
@@ -734,7 +734,7 @@ func (g *Game) DrawTankLoadout(screen *ebiten.Image) {
 			msg = fmt.Sprintf("bullet: < %s >", DetermineBulletName(BulletTypeEnum(g.tank.Get(mask))))
 		case 2:
 			mask = BarrelMask
-			msg = fmt.Sprintf("barrel: < %s >", DetermineBulletName(BulletTypeEnum(g.tank.Get(mask))))
+			msg = fmt.Sprintf("barrel: < %s >", DetermineBarrelName(g.tank.Get(mask)))
 		case 3:
 			mask = TracksMask
 			msg = fmt.Sprintf("tracks: < %s >", DetermineBulletName(BulletTypeEnum(g.tank.Get(TracksMask))))
