@@ -44,9 +44,8 @@ type Client struct {
 	available_servers []shared.AvailableServer
 }
 
-
 type NetworkManager struct {
-	client *Client
+	client        *Client
 	mediator_addr *net.UDPAddr
 }
 

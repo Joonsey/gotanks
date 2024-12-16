@@ -10,7 +10,7 @@ const (
 )
 
 func DetermineAdditionalBounces(barrel_type uint8) int {
-	switch barrel_type  {
+	switch barrel_type {
 	case BarrelRubber:
 		return 1
 	default:
@@ -19,7 +19,7 @@ func DetermineAdditionalBounces(barrel_type uint8) int {
 }
 
 func DetermineVelocityMultiplier(barrel_type uint8) float64 {
-	switch barrel_type  {
+	switch barrel_type {
 	case BarrelHeavy:
 		return 1.45
 	case BarrelRubber:
@@ -59,7 +59,7 @@ func DetermineBarrelStats(barrel_type uint8) string {
 	switch barrel_type {
 	default:
 		additional_bounces := DetermineAdditionalBounces(barrel_type)
-		if additional_bounces != 0{
+		if additional_bounces != 0 {
 			return fmt.Sprintf("\n - Velocity multiplier: %.1fx\n - Bullet richochet modifier: %d",
 				DetermineVelocityMultiplier(barrel_type), additional_bounces)
 		}

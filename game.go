@@ -72,7 +72,7 @@ type GameContext struct {
 	new_level_time time.Time
 	game_over_time time.Time
 
-	available_servers [] shared.AvailableServer
+	available_servers []shared.AvailableServer
 	current_state     GameStateEnum
 	current_selection int
 	isReady           bool

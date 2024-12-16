@@ -2,6 +2,13 @@ package game
 
 import "fmt"
 
+const (
+	LoaderAutoloader uint8 = iota + 1 // Starts at 1 to avoid GOB's zero-value issue
+	LoaderFastReload
+	LoaderManualReload
+	LoaderEnd
+)
+
 func DetermineMaxMagMultiplier(loader_type uint8) float64 {
 	switch loader_type {
 	case LoaderAutoloader:

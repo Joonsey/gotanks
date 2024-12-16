@@ -173,15 +173,15 @@ func (t *Tank) Update(g *Game) {
 
 	g.gm.ApplyForce(t.X, t.Y)
 
-	loaderType := t.Get(LoaderMask)
-	bulletType := BulletTypeEnum(t.Get(BulletMask))
-	barrelType := t.Get(BarrelMask)
+	loader_type := t.Get(LoaderMask)
+	bullet_type := BulletTypeEnum(t.Get(BulletMask))
+	barrel_type := t.Get(BarrelMask)
 
-	base_reload_speed := DetermineBaseReloadSpeed(bulletType)
-	reload_speed_multiplier := DetermineReloadSpeedMultiplier(loaderType)
+	base_reload_speed := DetermineBaseReloadSpeed(bullet_type)
+	reload_speed_multiplier := DetermineReloadSpeedMultiplier(loader_type)
 	effective_reload_speed := base_reload_speed * reload_speed_multiplier
 
-	switch loaderType {
+	switch loader_type {
 	case LoaderAutoloader:
 		// Autoloader logic: reload multiple bullets at once but takes longer
 		if t.IsReloading {
@@ -239,12 +239,12 @@ func (t *Tank) Update(g *Game) {
 		bullet := Bullet{}
 		bullet.Position = bullet_pos
 		bullet.Rotation = -rel_rotation + -g.camera.rotation + math.Pi
-		bullet.Bullet_type = bulletType
+		bullet.Bullet_type = bullet_type
 
 		// TODO consider moving this initialization to server side
 		// for 'security' / 'integrity'
-		bullet.Num_bounces = DetermineNumBounces(bullet.Bullet_type) + DetermineAdditionalBounces(barrelType)
-		bullet.Velocity = DetermineVelocity(bullet.Bullet_type) * DetermineVelocityMultiplier(barrelType)
+		bullet.Num_bounces = DetermineNumBounces(bullet.Bullet_type) + DetermineAdditionalBounces(barrel_type)
+		bullet.Velocity = DetermineVelocity(bullet.Bullet_type) * DetermineVelocityMultiplier(barrel_type)
 		g.bm.Shoot(bullet)
 	}
 
