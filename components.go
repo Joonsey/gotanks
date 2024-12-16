@@ -56,13 +56,6 @@ func (c *Component) LogConfiguration() {
 }
 
 const (
-	LoaderAutoloader uint8 = iota + 1 // Starts at 1 to avoid GOB's zero-value issue
-	LoaderFastReload
-	LoaderManualReload
-	LoaderEnd
-)
-
-const (
 	TracksLight uint8 = iota + 1
 	TracksMedium
 	TracksHeavy
