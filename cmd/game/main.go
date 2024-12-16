@@ -17,9 +17,11 @@ func main() {
 	start_server := flag.Bool("server", false, "start server")
 	force_new_id := flag.Bool("f", false, "force new id")
 	profiler := flag.Bool("p", false, "start profiler")
+	mediator_addr := flag.String("mediator", game.MEDIATOR_ADDR, "mediator server address")
+
 	flag.Parse()
 
-	g := game.GameInit()
+	g := game.GameInit(*mediator_addr)
 
 	if g.SaveIsFresh() || *force_new_id {
 		g.GenerateNewPlayerId()

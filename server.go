@@ -107,7 +107,7 @@ type Server struct {
 	mediator_addr *net.UDPAddr
 }
 
-func StartServer(name string) {
+func StartServer(name string, mediator_addr *net.UDPAddr) {
 	server := Server{}
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port: SERVERPORT})
 	if err != nil {
@@ -124,7 +124,7 @@ func StartServer(name string) {
 	server.level = loadLevel("assets/tiled/level_1.tmx", nil, nil)
 	server.bm.bullets = make(map[string]*Bullet)
 
-	server.mediator_addr = &net.UDPAddr{IP: net.ParseIP(MEDIATOR_ADDR), Port: MEDIATOR_PORT}
+	server.mediator_addr = mediator_addr
 
 	server.sm = InitStatsManager()
 	server.Name = name

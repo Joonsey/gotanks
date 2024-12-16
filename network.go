@@ -22,8 +22,7 @@ const (
 	BUFFER_SIZE = 2048
 
 	MEDIATOR_PORT = 8080
-	// MEDIATOR_ADDR = "84.215.22.166"
-	MEDIATOR_ADDR = "127.0.0.1"
+	MEDIATOR_ADDR = "84.215.22.166"
 
 	// update_interval = fps / desired ticks per second
 	// 3 = 60/20
@@ -48,19 +47,21 @@ type Client struct {
 
 type NetworkManager struct {
 	client *Client
+	mediator_addr *net.UDPAddr
 }
 
 func (c *Client) isConnected() bool {
 	return c.is_connected
 }
 
-func InitNetworkManager() *NetworkManager {
+func InitNetworkManager(mediator_addr string) *NetworkManager {
 	nm := NetworkManager{}
 	conn, err := net.ListenUDP("udp", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	nm.mediator_addr = &net.UDPAddr{IP: net.ParseIP(mediator_addr), Port: MEDIATOR_PORT}
 	nm.client = &Client{}
 	nm.client.packet_channel = make(chan shared.PacketData)
 	nm.client.wins = make(map[string]int)
@@ -92,7 +93,7 @@ func InitNetworkManager() *NetworkManager {
 					log.Println("unable to serialize packet, but we don't break for that reason")
 					continue
 				}
-				nm.client.conn.WriteToUDP(data_bytes, &net.UDPAddr{IP: net.ParseIP(MEDIATOR_ADDR), Port: MEDIATOR_PORT})
+				nm.client.conn.WriteToUDP(data_bytes, nm.mediator_addr)
 			}
 		}
 	}()
@@ -137,16 +138,16 @@ func (c *Client) Listen() {
 	}
 }
 
-func (c *Client) Connect(server shared.AvailableServer) {
-	if c.isConnected() {
+func (nm *NetworkManager) Connect(server shared.AvailableServer) {
+	if nm.client.isConnected() {
 		log.Panic("tried to connect while already connected")
 	}
-	c.target = &net.UDPAddr{IP: net.ParseIP(server.Ip), Port: server.Port}
+	nm.client.target = &net.UDPAddr{IP: net.ParseIP(server.Ip), Port: server.Port}
 
 	data := shared.ReconcilliationData{Name: server.Name}
-	data_bytes, _ := shared.SerializePacket(shared.Packet{PacketType: shared.PacketTypeMatchConnect}, *c.Auth, data)
-	c.conn.WriteToUDP(data_bytes, &net.UDPAddr{IP: net.ParseIP(MEDIATOR_ADDR), Port: MEDIATOR_PORT})
-	c.is_connected = true
+	data_bytes, _ := shared.SerializePacket(shared.Packet{PacketType: shared.PacketTypeMatchConnect}, *nm.client.Auth, data)
+	nm.client.conn.WriteToUDP(data_bytes, nm.mediator_addr)
+	nm.client.is_connected = true
 }
 
 func (c *Client) Disconnect() {

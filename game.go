@@ -394,7 +394,7 @@ func (g *Game) UpdateServerPicking() error {
 			g.context.current_server = nil
 		} else if g.context.current_selection < len(g.context.available_servers)+1 {
 			server := g.context.available_servers[g.context.current_selection-1]
-			g.nm.client.Connect(server)
+			g.nm.Connect(server)
 			g.context.current_server = &server
 			g.context.current_state = GameStateLobby
 		}
@@ -404,10 +404,10 @@ func (g *Game) UpdateServerPicking() error {
 
 func (g *Game) HostServer() {
 	name := CreateServerName()
-	go StartServer(name)
+	go StartServer(name, g.nm.mediator_addr)
 	g.context.current_state = GameStateLobby
 	g.context.current_server = &shared.AvailableServer{Ip: "127.0.0.1", Port: SERVERPORT, Name: name, Player_count: 0, Max_players: 2}
-	g.nm.client.Connect(*g.context.current_server)
+	g.nm.Connect(*g.context.current_server)
 }
 
 func (g *Game) UpdateMainMenu() error {
@@ -802,7 +802,7 @@ func (g *Game) InitStripeTexture() {
 	vector.DrawFilledRect(stripe_texture, 0, 0, float32(SCREEN_WIDTH/AMOUNT_OF_STRIPES/2), SCREEN_HEIGHT, STRIPE_COLOR, true)
 }
 
-func GameInit() *Game {
+func GameInit(mediator_addr string) *Game {
 	am := &AssetManager{}
 	am.Init("temp.json")
 
@@ -832,7 +832,7 @@ func GameInit() *Game {
 	game.camera.rotation = -46 * math.Pi / 180
 
 	game.sm = InitSaveManager()
-	game.nm = InitNetworkManager()
+	game.nm = InitNetworkManager(mediator_addr)
 	game.pm = InitParticleManager(game.am)
 	game.bm = InitBulletManager(game.nm, game.am, game.pm)
 
