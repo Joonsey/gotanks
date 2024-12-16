@@ -334,6 +334,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 		go func() {
 			time.Sleep(event.Timestamp.Sub(time.Now()))
 			game.context.current_state = GameStatePlaying
+			game.context.current_level = int(event.Level)
 			game.tank.Respawn(spawn)
 			game.Reset()
 		}()

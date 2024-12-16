@@ -21,8 +21,6 @@ type GrassManager struct {
 	grass []Grass
 }
 
-func InitializeGrassManager() {}
-
 func (gm *GrassManager) AddGrass(grass Grass) {
 	gm.grass = append(gm.grass, grass)
 }

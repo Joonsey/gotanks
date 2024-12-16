@@ -138,7 +138,7 @@ func calculateSmokeOffsetX(p Particle) float64 {
 }
 
 func (p *Particle) Update(game *Game) {
-	level := game.level
+	level := game.CurrentLevel()
 	switch p.particle_type {
 	case ParticleTypeDebrisFromTank:
 		x, y := math.Sin(p.Rotation)*p.velocity, math.Cos(p.Rotation)*p.velocity
@@ -249,7 +249,7 @@ func (pm *ParticleManager) Update(g *Game) {
 		}
 		particle.Update(g)
 		if particle.Offset_z <= 8 {
-			g.gm.ApplyForce(particle.X, particle.Y)
+			g.CurrentLevel().gm.ApplyForce(particle.X, particle.Y)
 		}
 	}
 

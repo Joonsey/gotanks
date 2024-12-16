@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"gotanks/shared"
 	"log"
 	"math/rand"
@@ -97,14 +98,20 @@ type Server struct {
 	connected_players ConnectedPlayers
 
 	bm    BulletManager
-	level Level
+	levels []Level
 	state ServerGameStateEnum
 	sm    *ServerSyncManager
 	Name  string
 
+	current_level int
+
 	wait_time time.Time
 
 	mediator_addr *net.UDPAddr
+}
+
+func (s *Server) CurrentLevel() *Level {
+	return &s.levels[s.current_level]
 }
 
 func StartServer(name string, mediator_addr *net.UDPAddr) {
@@ -121,7 +128,10 @@ func StartServer(name string, mediator_addr *net.UDPAddr) {
 	server.connected_players.m = make(map[string]ConnectedPlayer)
 
 	server.accepts_new_connections = true
-	server.level = loadLevel("assets/tiled/level_1.tmx", nil, nil)
+	for i := range LEVEL_COUNT {
+		level_path := fmt.Sprintf("assets/tiled/level_%d.tmx", i+1)
+		server.levels = append(server.levels, loadLevel(level_path, nil, true))
+	}
 	server.bm.bullets = make(map[string]*Bullet)
 
 	server.mediator_addr = mediator_addr
@@ -249,7 +259,7 @@ func (s *Server) GetSpawnMap() map[string]Position {
 	defer s.connected_players.RUnlock()
 
 	spawn_map := make(map[string]Position)
-	spawns := s.level.GetSpawnPositions()
+	spawns := s.CurrentLevel().GetSpawnPositions()
 
 	i := 0
 	for key := range s.connected_players.m {
@@ -284,7 +294,7 @@ func (s *Server) UpdateServerLogic() {
 		s.UpdateMediator()
 	}
 
-	s.bm.Update(&s.level, nil)
+	s.bm.Update(s.CurrentLevel(), nil)
 
 	s.connected_players.RLock()
 	for key, value := range s.connected_players.m {
@@ -360,7 +370,8 @@ func (s *Server) GetReadyPlayers() (ready []ConnectedPlayer, total_count int) {
 }
 
 func (s *Server) DetermineNextLevel() LevelEnum {
-	return 1
+	s.current_level = (s.current_level + 1) % len(s.levels)
+	return LevelEnum(s.current_level)
 }
 
 func (s *Server) GetHighestWinCount() (top_player string, highest_wins int) {
@@ -407,7 +418,7 @@ func (s *Server) StartNewRound() *Round {
 	if current_match == nil {
 		log.Panic("can not start a round before a match")
 	}
-	round := NewRound(*current_match, s.DetermineNextLevel(), s.sm)
+	round := NewRound(*current_match, LevelEnum(s.current_level), s.sm)
 
 	return &round
 }
@@ -462,7 +473,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 				packet := shared.Packet{PacketType: shared.PacketTypeGameOver}
 				event := NewRoundEvent{
 					Timestamp: wait_time,
-					Level:     s.DetermineNextLevel(),
+					Level:     LevelEnum(s.current_level),
 					Winner:    winner_id,
 				}
 				s.wait_time = wait_time
@@ -474,7 +485,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 				event := NewRoundEvent{
 					Spawns:    spawns,
 					Timestamp: wait_time,
-					Level:     s.DetermineNextLevel(),
+					Level:     LevelEnum(s.current_level),
 					Winner:    winner_id,
 				}
 
@@ -487,6 +498,10 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 		}
 	case ServerGameStateStartingNewMatch:
 		if after_grace_period {
+			// TODO validate that this is accurate
+			// works as intended from a little bit of testing
+			s.DetermineNextLevel()
+
 			s.sm.stats.Matches = append(s.sm.stats.Matches, s.StartNewMatch())
 			new_state = ServerGameStateStartingNewRound
 			s.wait_time = time.Now().Add(time.Millisecond * STATE_CHANGE_GRACE_MS)
@@ -496,7 +511,7 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 			event := NewRoundEvent{
 				Spawns:    spawns,
 				Timestamp: wait_time,
-				Level:     s.DetermineNextLevel(),
+				Level:     LevelEnum(s.current_level),
 			}
 			// we omitt the field Winner here
 			// not very clean but it is what it is

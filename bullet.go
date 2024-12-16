@@ -226,7 +226,7 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 	}
 
 	if game != nil {
-		game.gm.ApplyForce(b.X, b.Y)
+		level.gm.ApplyForce(b.X, b.Y)
 	}
 	b.grace_period = max(b.grace_period-1, 0)
 	return b

@@ -67,6 +67,7 @@ type GameContext struct {
 	draw_data      []DrawData
 	tracks         []Track
 	player_updates []PlayerUpdate
+	levels		   []Level
 
 	// TODO refactor
 	new_level_time time.Time
@@ -77,15 +78,14 @@ type GameContext struct {
 	current_selection int
 	isReady           bool
 	background_time   int
+	current_level     int
 
 	current_server *shared.AvailableServer
 }
 
 type Game struct {
 	tank   Tank
-	level  Level
 	am     *AssetManager
-	gm     *GrassManager
 	nm     *NetworkManager
 	bm     *BulletManager
 	pm     *ParticleManager
@@ -112,6 +112,10 @@ var player_palette = []color.Color{
 var STRIPE_COLOR = color.RGBA{R: 0, G: 107, B: 107, A: 255}
 var PLAYER_COLOR = color.RGBA{R: 85, G: 85, B: 255, A: alpha}
 var MISSING_PLAYER_COLOR = color.RGBA{R: 175, G: 175, B: 175, A: 255}
+
+func (g *Game) CurrentLevel() *Level {
+	return &g.context.levels[g.context.current_level]
+}
 
 func (g *Game) DrawStackedSpriteDrawData(screen *ebiten.Image, data DrawData) {
 	if data.r != 0 || data.g != 0 || data.b != 0 {
@@ -246,8 +250,9 @@ func (g *Game) GetTargetCameraPosition() Position {
 func (g *Game) UpdateGameplay() error {
 	g.tank.Update(g)
 	g.camera.Update(g.GetTargetCameraPosition())
-	g.gm.Update(g)
-	g.bm.Update(&g.level, g)
+	level := g.CurrentLevel()
+	level.gm.Update(g)
+	g.bm.Update(level, g)
 	g.pm.Update(g)
 	g.time += 0.01
 
@@ -502,9 +507,9 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) DrawGameplay(screen *ebiten.Image) {
-	g.level.GetDrawData(screen, g, g.camera)
+	level := g.CurrentLevel()
+	level.GetDrawData(screen, g, g.camera)
 	g.tank.GetDrawData(screen, g, g.camera, PLAYER_COLOR)
-	g.gm.GetDrawData(g)
 	g.bm.GetDrawData(g)
 	g.pm.GetDrawData(g)
 	if g.nm.client.isConnected() {
@@ -838,8 +843,10 @@ func GameInit(mediator_addr string) *Game {
 
 	game.nm.client.Auth = &game.sm.data.Player_ID
 
-	game.gm = &GrassManager{}
-	game.level = loadLevel("assets/tiled/level_1.tmx", game.am, game.gm)
+	for i := range LEVEL_COUNT {
+		level_path := fmt.Sprintf("assets/tiled/level_%d.tmx", i+1)
+		game.context.levels = append(game.context.levels, loadLevel(level_path, game.am, true))
+	}
 
 	game.context.current_state = GameStateMainMenu
 

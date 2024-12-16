@@ -117,17 +117,18 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr col
 
 func (t *Tank) TryMove(g *Game, speed float64) {
 	initial_position := t.Position
+	level := g.CurrentLevel()
 	x := math.Cos(t.Rotation)
 	y := math.Sin(t.Rotation)
 
 	t.X += x * speed
-	collided_object := g.level.CheckObjectCollision(t.Position)
+	collided_object := level.CheckObjectCollision(t.Position)
 	if collided_object != nil {
 		t.Position.X = initial_position.X
 	}
 
 	t.Y += y * speed
-	collided_object = g.level.CheckObjectCollision(t.Position)
+	collided_object = level.CheckObjectCollision(t.Position)
 	if collided_object != nil {
 		t.Position.Y = initial_position.Y
 	}
@@ -171,7 +172,7 @@ func (t *Tank) Update(g *Game) {
 		t.TryAddSmoke(g)
 	}
 
-	g.gm.ApplyForce(t.X, t.Y)
+	g.CurrentLevel().gm.ApplyForce(t.X, t.Y)
 
 	loader_type := t.Get(LoaderMask)
 	bullet_type := BulletTypeEnum(t.Get(BulletMask))
@@ -255,7 +256,7 @@ func (t *Tank) Update(g *Game) {
 	}
 
 	for _, player := range g.context.player_updates {
-		g.gm.ApplyForce(player.Tank.X, player.Tank.Y)
+		g.CurrentLevel().gm.ApplyForce(player.Tank.X, player.Tank.Y)
 	}
 }
 

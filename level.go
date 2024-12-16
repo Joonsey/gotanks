@@ -13,6 +13,8 @@ import (
 const (
 	LEVEL_CONST_GROUND = "ground"
 	LEVEL_CONST_STACKS = "stacks"
+
+	LEVEL_COUNT = 2
 )
 
 type LevelEnum int
@@ -20,6 +22,9 @@ type LevelEnum int
 type Level struct {
 	tiled_map tiled.Map
 	am        *AssetManager
+
+	// consider normalizing maybe?
+	gm        GrassManager
 
 	spawns     []tiled.Object
 	collisions []tiled.Object
@@ -106,7 +111,7 @@ func (l *Level) MakeGrass(object_group *tiled.ObjectGroup, gm *GrassManager) {
 	}
 }
 
-func loadLevel(map_path string, am *AssetManager, gm *GrassManager) Level {
+func loadLevel(map_path string, am *AssetManager, include_grass bool) Level {
 	// level should have owner ship of grass
 	// global grass manager should not exist
 	// TODO
@@ -116,6 +121,7 @@ func loadLevel(map_path string, am *AssetManager, gm *GrassManager) Level {
 	}
 
 	level := Level{tiled_map: *game_map, am: am}
+	level.gm = GrassManager{}
 	for _, object_group := range level.tiled_map.ObjectGroups {
 		// Loop through ob in the object group
 		switch object_group.Name {
@@ -126,8 +132,8 @@ func loadLevel(map_path string, am *AssetManager, gm *GrassManager) Level {
 		case "spawn":
 			level.getSpawns(object_group)
 		case "grass":
-			if gm != nil {
-				level.MakeGrass(object_group, gm)
+			if include_grass {
+				level.MakeGrass(object_group, &level.gm)
 			}
 		}
 	}
@@ -190,4 +196,5 @@ func (l *Level) GetDrawData(screen *ebiten.Image, g *Game, camera Camera) {
 			}
 		}
 	}
+	l.gm.GetDrawData(g)
 }
