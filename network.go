@@ -306,13 +306,14 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 					max_t:         30 * n,
 				})
 		}
+
+		// TODO maybe should be on center of hit tank, not where bullet hit
 		game.pm.AddParticle(
 			Particle{Position: bullet.Position,
-				Rotation:      0,
 				sprite_path:   particle_sprite,
 				velocity:      .4,
 				particle_type: ParticleTypeDonut,
-				max_t:         90,
+				max_t:         45,
 			})
 
 		delete(game.bm.bullets, hit.Bullet_ID)

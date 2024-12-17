@@ -87,8 +87,10 @@ func (pm *ParticleManager) AddParticle(particle Particle) {
 		particle.variance = 4
 	case ParticleTypeDonut:
 		particle.shadow = true
-		particle.Position.Y += 4
-		particle.offset.Y = -4
+
+		// offset y - shadow margin
+		particle.Offset_z = -16
+		particle.offset.Y = -20
 
 	}
 	pm.particles = append(pm.particles, &particle)
@@ -111,8 +113,9 @@ func (p *Particle) GetDrawData(camera Camera) DrawData {
 		inner_color := color.RGBA{R: 255, G: 85, B: 85, A: 255}
 		outer_color := color.White
 		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin, f32_radius, 6, outer_color, false)
-		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin + 2, f32_radius, 6, outer_color, false)
+		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin + 1, f32_radius, 6, outer_color, false)
 		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin, f32_radius, 4, inner_color, false)
+
 		return DrawData{
 			sprite:    PARTICLE_SPRITE_BUFFER.SubImage(image.Rect(0, 0, int(f32_radius + f32_margin)*2, int(f32_radius + f32_margin)*2)).(*ebiten.Image),
 			position:  Position{x, y - p.Offset_z},
@@ -230,7 +233,6 @@ func (p *Particle) Update(game *Game) {
 		p.current_t--
 	case ParticleTypeDonut:
 		lifetime_progress := p.current_t / p.max_t
-		p.Offset_z = 4
 		if lifetime_progress <= 0.8 {
 			p.opacity = 1.0
 		} else {
