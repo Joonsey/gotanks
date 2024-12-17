@@ -24,7 +24,7 @@ type Level struct {
 	am        *AssetManager
 
 	// consider normalizing maybe?
-	gm        GrassManager
+	gm GrassManager
 
 	spawns     []tiled.Object
 	collisions []tiled.Object

@@ -97,11 +97,11 @@ type Server struct {
 	packet_channel    chan shared.PacketData
 	connected_players ConnectedPlayers
 
-	bm    BulletManager
+	bm     BulletManager
 	levels []Level
-	state ServerGameStateEnum
-	sm    *ServerSyncManager
-	Name  string
+	state  ServerGameStateEnum
+	sm     *ServerSyncManager
+	Name   string
 
 	current_level int
 

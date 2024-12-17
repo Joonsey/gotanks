@@ -72,6 +72,7 @@ func (t *TankMinimal) Kill() {
 }
 
 const RADIUS = 20
+
 var RADI_SPRITE = ebiten.NewImage(RADIUS, RADIUS)
 
 func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr color.Color) {

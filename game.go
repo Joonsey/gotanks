@@ -67,7 +67,7 @@ type GameContext struct {
 	draw_data      []DrawData
 	tracks         []Track
 	player_updates []PlayerUpdate
-	levels		   []Level
+	levels         []Level
 
 	// TODO refactor
 	new_level_time time.Time

@@ -280,7 +280,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 		bullet := game.bm.bullets[hit.Bullet_ID]
 
 		seed := time.Now().Unix()
-		particle_count := float64(seed % 5) + 8
+		particle_count := float64(seed%5) + 8
 		for i := range int(particle_count) {
 			// TODO seed this so it can be reasonably consistent across clients
 			n := rand.Float64() + 1
@@ -293,7 +293,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 					max_t:         60 * n,
 				})
 		}
-		particle_count = float64(seed % 3) + 4
+		particle_count = float64(seed%3) + 4
 		for i := range int(particle_count) {
 			// TODO seed this so it can be reasonably consistent across clients
 			n := rand.Float64() + 1

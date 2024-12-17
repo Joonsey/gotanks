@@ -215,8 +215,8 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 					Rotation:      b.Rotation,
 					velocity:      2,
 					sprite_path:   "assets/sprites/stacks/particle-cube-template.png",
-					max_t:		   15,
-			})
+					max_t:         15,
+				})
 		}
 		if b.Num_bounces == 0 {
 			return nil
@@ -237,8 +237,8 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 					Rotation:      b.Rotation,
 					velocity:      2,
 					sprite_path:   "assets/sprites/stacks/particle-cube-template.png",
-					max_t:		   15,
-			})
+					max_t:         15,
+				})
 		}
 		if b.Num_bounces == 0 {
 			return nil
