@@ -146,18 +146,18 @@ func DetermineNumBounces(bullet_type BulletTypeEnum) int {
 func DetermineVelocity(bullet_type BulletTypeEnum) float64 {
 	switch bullet_type {
 	case BulletTypeFast:
-		return 3
+		return 3.3
 	default:
-		return 1.3
+		return 2.3
 	}
 }
 
 func DetermineBaseMagSize(bullet_type BulletTypeEnum) int {
 	switch bullet_type {
 	case BulletTypeStandard:
-		return 2
+		return 4
 	default:
-		return 1
+		return 2
 	}
 }
 
@@ -207,6 +207,17 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 	collided_object := level.CheckObjectCollisionWithDimensions(b.Position, Position{4, 4})
 	if collided_object != nil {
 		b.Rotation = math.Pi - b.Rotation
+		if game != nil {
+			game.pm.AddParticle(
+				Particle{
+					particle_type: ParticleTypeGunSmoke,
+					Position:      b.Position,
+					Rotation:      b.Rotation,
+					velocity:      2,
+					sprite_path:   "assets/sprites/stacks/particle-cube-template.png",
+					max_t:		   15,
+			})
+		}
 		if b.Num_bounces == 0 {
 			return nil
 		}
@@ -218,6 +229,17 @@ func (b *Bullet) Update(level *Level, game *Game) *Bullet {
 	collided_object = level.CheckObjectCollisionWithDimensions(b.Position, Position{4, 4})
 	if collided_object != nil {
 		b.Rotation = -b.Rotation
+		if game != nil {
+			game.pm.AddParticle(
+				Particle{
+					particle_type: ParticleTypeGunSmoke,
+					Position:      b.Position,
+					Rotation:      b.Rotation,
+					velocity:      2,
+					sprite_path:   "assets/sprites/stacks/particle-cube-template.png",
+					max_t:		   15,
+			})
+		}
 		if b.Num_bounces == 0 {
 			return nil
 		}

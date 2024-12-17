@@ -280,8 +280,8 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 		bullet := game.bm.bullets[hit.Bullet_ID]
 
 		seed := time.Now().Unix()
-		particle_count := float64(seed % 5)
-		for i := range int(particle_count) + 4 {
+		particle_count := float64(seed % 5) + 8
+		for i := range int(particle_count) {
 			// TODO seed this so it can be reasonably consistent across clients
 			n := rand.Float64() + 1
 			game.pm.AddParticle(
@@ -293,17 +293,17 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 					max_t:         60 * n,
 				})
 		}
-		particle_count = float64(seed % 3)
-		for i := range int(particle_count) + 2 {
+		particle_count = float64(seed % 3) + 4
+		for i := range int(particle_count) {
 			// TODO seed this so it can be reasonably consistent across clients
 			n := rand.Float64() + 1
 			game.pm.AddParticle(
 				Particle{Position: bullet.Position,
 					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
 					sprite_path:   particle_sprite,
-					velocity:      n * .2,
+					velocity:      n * .1,
 					particle_type: ParticleTypeDebrisFromTank,
-					max_t:         45 * n,
+					max_t:         30 * n,
 				})
 		}
 		game.pm.AddParticle(
