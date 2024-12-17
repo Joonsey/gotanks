@@ -288,7 +288,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 				Particle{Position: bullet.Position,
 					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
 					sprite_path:   particle_sprite,
-					velocity:      n * .4,
+					velocity:      n * .8,
 					particle_type: ParticleTypeDebrisFromTank,
 					max_t:         60 * n,
 				})
@@ -310,9 +310,9 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 			Particle{Position: bullet.Position,
 				Rotation:      0,
 				sprite_path:   particle_sprite,
-				velocity:      .6,
+				velocity:      .4,
 				particle_type: ParticleTypeDonut,
-				max_t:         55,
+				max_t:         90,
 			})
 
 		delete(game.bm.bullets, hit.Bullet_ID)

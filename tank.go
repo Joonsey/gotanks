@@ -141,7 +141,7 @@ func (t *Tank) TryMove(g *Game, speed float64) {
 }
 
 func (t *TankMinimal) TryAddSmoke(g *Game) {
-	if int(g.time*100)%13 == 0 {
+	if int(g.time*100)%9 == 0 {
 		offset := 4.
 		pos := t.Position
 		pos.Y -= offset

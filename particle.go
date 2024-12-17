@@ -1,8 +1,13 @@
 package game
 
 import (
+	"image"
+	"image/color"
 	"math"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type ParticleTypeEnum int
@@ -42,6 +47,9 @@ type ParticleManager struct {
 
 	particles []*Particle
 }
+
+
+var PARTICLE_SPRITE_BUFFER = ebiten.NewImage(RENDER_WIDTH, RENDER_HEIGHT)
 
 func InitParticleManager(am *AssetManager) *ParticleManager {
 	pm := ParticleManager{}
@@ -92,16 +100,42 @@ func (pm *ParticleManager) Reset() {
 
 func (p *Particle) GetDrawData(camera Camera) DrawData {
 	x, y := camera.GetRelativePosition(p.X, p.Y)
-	return DrawData{
-		path:      p.sprite_path,
-		position:  Position{x, y - p.Offset_z},
-		rotation:  p.Rotation - camera.rotation,
-		intensity: float32(p.intensity),
-		offset:    p.offset,
-		opacity:   float32(p.opacity),
-		r:         p.r,
-		g:         p.g,
-		b:         p.b,
+	switch p.particle_type {
+	case ParticleTypeDonut:
+		radius := max(p.velocity*p.current_t, 1)
+		margin := 10
+		PARTICLE_SPRITE_BUFFER.Clear()
+
+		f32_radius := float32(radius)
+		f32_margin := float32(margin)
+		inner_color := color.RGBA{R: 255, G: 85, B: 85, A: 255}
+		outer_color := color.White
+		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin, f32_radius, 6, outer_color, false)
+		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin + 2, f32_radius, 6, outer_color, false)
+		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin, f32_radius, 4, inner_color, false)
+		return DrawData{
+			sprite:    PARTICLE_SPRITE_BUFFER.SubImage(image.Rect(0, 0, int(f32_radius + f32_margin)*2, int(f32_radius + f32_margin)*2)).(*ebiten.Image),
+			position:  Position{x, y - p.Offset_z},
+			rotation:  90 * math.Pi / 180,
+			intensity: float32(p.intensity),
+			offset:    p.offset,
+			opacity:   float32(p.opacity),
+			r:         p.r,
+			g:         p.g,
+			b:         p.b,
+		}
+	default:
+		return DrawData{
+			path:      p.sprite_path,
+			position:  Position{x, y - p.Offset_z},
+			rotation:  p.Rotation - camera.rotation,
+			intensity: float32(p.intensity),
+			offset:    p.offset,
+			opacity:   float32(p.opacity),
+			r:         p.r,
+			g:         p.g,
+			b:         p.b,
+		}
 	}
 }
 
@@ -118,13 +152,30 @@ func exponentialDecay(start_value, decay_rate, time float64) float64 {
 
 func (p *Particle) GetDrawShadowData(camera Camera) DrawData {
 	x, y := camera.GetRelativePosition(p.X, p.Y)
-	return DrawData{
-		path:      p.sprite_path,
-		position:  Position{x, y - 20},
-		rotation:  p.Rotation - camera.rotation,
-		intensity: 0.2,
-		offset:    Position{0, 20},
-		opacity:   0.25,
+	switch p.particle_type {
+	case ParticleTypeDonut:
+		radius := max(p.velocity*p.current_t, 1)
+		margin := 10
+
+		f32_radius := float32(radius)
+		f32_margin := float32(margin)
+		return DrawData{
+			sprite:    PARTICLE_SPRITE_BUFFER.SubImage(image.Rect(0, 0, int(f32_radius + f32_margin)*2, int(f32_radius + f32_margin)*2)).(*ebiten.Image),
+			position:  Position{x, y - 20},
+			rotation:  90 * math.Pi / 180,
+			intensity: 0.2,
+			offset:    Position{0, 20},
+			opacity:   0.25,
+		}
+	default:
+		return DrawData{
+			path:      p.sprite_path,
+			position:  Position{x, y - 20},
+			rotation:  p.Rotation - camera.rotation,
+			intensity: 0.2,
+			offset:    Position{0, 20},
+			opacity:   0.25,
+		}
 	}
 }
 
@@ -178,24 +229,14 @@ func (p *Particle) Update(game *Game) {
 		p.Position = game.tank.Position
 		p.current_t--
 	case ParticleTypeDonut:
-		// TODO implement with new DrawData
-		// probably just slap a sprite field on particles, or calculate this in draw call instead of update call
-
-		//radius := max(p.velocity*p.current_t, 1)
-
-		//image := ebiten.NewImage(int(radius)*4, int(radius)*4)
-		//f32_radius := float32(radius)
-		//vector.StrokeCircle(image, f32_radius*2, f32_radius*2, f32_radius, 6, color.White, false)
-		//vector.StrokeCircle(image, f32_radius*2, f32_radius*2, f32_radius, 4, color.RGBA{R: 255, G: 85, B: 85, A: 255}, false)
-		//p.sprites = append([]*ebiten.Image{}, image)
-
-		//lifetime_progress := p.current_t / p.max_t
-		//if lifetime_progress <= 0.8 {
-		//	p.opacity = 1.0
-		//} else {
-		//	fade_progress := (lifetime_progress - 0.8) / 0.2
-		//	p.opacity = 1.0 - fade_progress
-		//}
+		lifetime_progress := p.current_t / p.max_t
+		p.Offset_z = 4
+		if lifetime_progress <= 0.8 {
+			p.opacity = 1.0
+		} else {
+			fade_progress := (lifetime_progress - 0.8) / 0.2
+			p.opacity = 1.0 - fade_progress
+		}
 	}
 
 	p.current_t++
@@ -241,7 +282,7 @@ func (pm *ParticleManager) Update(g *Game) {
 						velocity:      0.1,
 						sprite_path:   particle.sprite_path,
 						max_t:         15,
-						variance:      12,
+						variance:      320,
 						offset:        particle.offset,
 					},
 				)
