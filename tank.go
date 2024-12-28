@@ -71,9 +71,11 @@ func (t *TankMinimal) Kill() {
 	t.Life = -1
 }
 
-const RADIUS = 20
+const RADIUS = 40
 
 var RADI_SPRITE = ebiten.NewImage(RADIUS, RADIUS)
+
+var polygonImage *ebiten.Image = ebiten.NewImage(1, 1)
 
 func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr color.Color) {
 	x, y := camera.GetRelativePosition(t.X, t.Y)
@@ -99,7 +101,50 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr col
 		if int(g.time*100)%TRACK_INTERVAL == 0 {
 			g.context.tracks = append(g.context.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 		}
-		vector.StrokeCircle(RADI_SPRITE, float32(radius)/2, float32(radius)/2, float32(radius)/2, 2, clr, true)
+		vector.StrokeCircle(RADI_SPRITE, float32(radius)/2, float32(radius)/2, float32(radius)/4, 2, clr, true)
+		rotationRad := t.Rotation
+
+		offset := -math.Pi+ camera.rotation
+
+		// Top point calculation (rotation - 90 degrees)
+		topX := math.Cos(rotationRad-math.Pi/2-offset) * 16
+		topY := math.Sin(rotationRad-math.Pi/2-offset) * 16
+
+		// Left point calculation (rotation degrees)
+		leftX := math.Cos(rotationRad-offset) * 10
+		leftY := math.Sin(rotationRad-offset) * 10
+
+		// Right point calculation (rotation - 180 degrees)
+		rightX := math.Cos(rotationRad-math.Pi-offset) * 10
+		rightY := math.Sin(rotationRad-math.Pi-offset) * 10
+
+		points := []Position{
+			{
+				X: topX + float64(radius/2),
+				Y: topY + float64(radius/2),
+			},
+			{
+				X: leftX + float64(radius/2),
+				Y: leftY + float64(radius/2),
+			},
+			{
+				X: rightX + float64(radius/2),
+				Y: rightY + float64(radius/2),
+			},
+		}
+
+		path := vector.Path{}
+		path.MoveTo(float32(points[0].X), float32(points[0].Y))
+		for _, p := range points[1:] {
+			path.LineTo(float32(p.X), float32(p.Y))
+		}
+		path.Close()
+
+		vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
+		polygonImage.Fill(PLAYER_COLOR)
+
+		RADI_SPRITE.DrawTriangles(vs, is, polygonImage, &ebiten.DrawTrianglesOptions{})
+
 	} else {
 		g.context.draw_data = append(g.context.draw_data, DrawData{
 			path:      t.dead_sprites_path,
@@ -108,12 +153,12 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr col
 			intensity: 1,
 			opacity:   1},
 		)
-		vector.DrawFilledCircle(RADI_SPRITE, float32(radius)/2, float32(radius)/2, float32(radius)/2, color.RGBA{R: 0, G: 0, B: 0, A: 128}, true)
+		vector.DrawFilledCircle(RADI_SPRITE, float32(radius)/2, float32(radius)/2, float32(radius)/4, color.RGBA{R: 0, G: 0, B: 0, A: 128}, true)
 	}
 	g.context.draw_data = append(g.context.draw_data, DrawData{
 		sprite:    RADI_SPRITE,
 		position:  Position{x, y - 1},
-		rotation:  t.Rotation,
+		rotation:  0,
 		intensity: 1,
 		offset:    Position{0, 1},
 		opacity:   1})

@@ -222,7 +222,7 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 				g.context.tracks = append(g.context.tracks, Track{t.Position, t.Rotation, TRACK_LIFETIME})
 			}
 			_ = i
-			vector.StrokeCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/2, 2, player_palette[i%len(player_palette)], true)
+			vector.StrokeCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/4, 2, player_palette[i%len(player_palette)], true)
 		} else {
 			// TODO extrapolate dead sprites data
 			dead_sprites := g.tank.dead_sprites_path
@@ -233,19 +233,19 @@ func (nm *NetworkManager) GetDrawData(g *Game) {
 				intensity: 1,
 				opacity:   1},
 			)
-			vector.DrawFilledCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/2, color.RGBA{R: 0, G: 0, B: 0, A: 128}, true)
+			vector.DrawFilledCircle(radi_sprite, float32(radius)/2, float32(radius)/2, float32(radius)/4, color.RGBA{R: 0, G: 0, B: 0, A: 128}, true)
 
 			// not sure how i feel about this living in a draw call
 			t.TryAddSmoke(g)
 
 		}
-	g.context.draw_data = append(g.context.draw_data, DrawData{
-		sprite:    radi_sprite,
-		position:  Position{x, y - 1},
-		rotation:  t.Rotation,
-		intensity: 1,
-		offset:    Position{0, 1},
-		opacity:   1})
+		g.context.draw_data = append(g.context.draw_data, DrawData{
+			sprite:    radi_sprite,
+			position:  Position{x, y - 1},
+			rotation:  t.Rotation,
+			intensity: 1,
+			offset:    Position{0, 1},
+			opacity:   1})
 	}
 }
 func (c *Client) IncrementWin(winner string) {
