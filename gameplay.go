@@ -28,6 +28,21 @@ func (g *Game) UpdateGameplay() error {
 	return nil
 }
 
+func (g *Game) DrawUI(screen *ebiten.Image) {
+	for count, player := range g.context.player_updates {
+		g.DrawPlayerUI(screen, player, len(g.context.player_updates), g.nm.client.wins[player.ID], count, g.am.new_level_font)
+	}
+
+	if g.nm.client.server_state == ServerGameStateStartingNewRound {
+		defer g.DrawNewLevelTimer(screen)
+	}
+	if g.nm.client.server_state == ServerGameStateGameOver {
+		defer g.DrawGameOver(screen)
+	}
+
+	g.DrawAmmo(screen)
+}
+
 func (g *Game) DrawGameplay(screen *ebiten.Image) {
 	level := g.CurrentLevel()
 	level.GetDrawData(screen, g, g.camera)
@@ -37,13 +52,6 @@ func (g *Game) DrawGameplay(screen *ebiten.Image) {
 	if g.nm.client.isConnected() {
 		g.nm.GetDrawData(g)
 		defer g.DrawUI(screen)
-
-		if g.nm.client.server_state == ServerGameStateStartingNewRound {
-			defer g.DrawNewLevelTimer(screen)
-		}
-		if g.nm.client.server_state == ServerGameStateGameOver {
-			defer g.DrawGameOver(screen)
-		}
 	}
 
 	for _, track := range g.context.tracks {

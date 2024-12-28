@@ -290,14 +290,6 @@ func (g *Game) DrawAmmo(screen *ebiten.Image) {
 	}
 }
 
-func (g *Game) DrawUI(screen *ebiten.Image) {
-	for count, player := range g.context.player_updates {
-		g.DrawPlayerUI(screen, player, len(g.context.player_updates), g.nm.client.wins[player.ID], count, g.am.new_level_font)
-	}
-
-	g.DrawAmmo(screen)
-}
-
 func (g *Game) Update() error {
 	var err error = nil
 	switch g.context.current_state {

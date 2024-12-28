@@ -48,7 +48,6 @@ type ParticleManager struct {
 	particles []*Particle
 }
 
-
 var PARTICLE_SPRITE_BUFFER = ebiten.NewImage(RENDER_WIDTH, RENDER_HEIGHT)
 
 func InitParticleManager(am *AssetManager) *ParticleManager {
@@ -112,12 +111,12 @@ func (p *Particle) GetDrawData(camera Camera) DrawData {
 		f32_margin := float32(margin)
 		inner_color := color.RGBA{R: 255, G: 85, B: 85, A: 255}
 		outer_color := color.White
-		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin, f32_radius, 6, outer_color, false)
-		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin + 1, f32_radius, 6, outer_color, false)
-		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius + f32_margin, f32_radius + f32_margin, f32_radius, 4, inner_color, false)
+		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius+f32_margin, f32_radius+f32_margin, f32_radius, 6, outer_color, false)
+		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius+f32_margin, f32_radius+f32_margin+1, f32_radius, 6, outer_color, false)
+		vector.StrokeCircle(PARTICLE_SPRITE_BUFFER, f32_radius+f32_margin, f32_radius+f32_margin, f32_radius, 4, inner_color, false)
 
 		return DrawData{
-			sprite:    PARTICLE_SPRITE_BUFFER.SubImage(image.Rect(0, 0, int(f32_radius + f32_margin)*2, int(f32_radius + f32_margin)*2)).(*ebiten.Image),
+			sprite:    PARTICLE_SPRITE_BUFFER.SubImage(image.Rect(0, 0, int(f32_radius+f32_margin)*2, int(f32_radius+f32_margin)*2)).(*ebiten.Image),
 			position:  Position{x, y - p.Offset_z},
 			rotation:  90 * math.Pi / 180,
 			intensity: float32(p.intensity),
@@ -163,7 +162,7 @@ func (p *Particle) GetDrawShadowData(camera Camera) DrawData {
 		f32_radius := float32(radius)
 		f32_margin := float32(margin)
 		return DrawData{
-			sprite:    PARTICLE_SPRITE_BUFFER.SubImage(image.Rect(0, 0, int(f32_radius + f32_margin)*2, int(f32_radius + f32_margin)*2)).(*ebiten.Image),
+			sprite:    PARTICLE_SPRITE_BUFFER.SubImage(image.Rect(0, 0, int(f32_radius+f32_margin)*2, int(f32_radius+f32_margin)*2)).(*ebiten.Image),
 			position:  Position{x, y - 20},
 			rotation:  90 * math.Pi / 180,
 			intensity: 0.2,
