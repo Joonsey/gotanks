@@ -494,7 +494,6 @@ func (s *Server) CheckServerState() ServerGameStateEnum {
 				new_state = ServerGameStateStartingNewRound
 
 			}
-			s.bm.Reset()
 		}
 	case ServerGameStateStartingNewMatch:
 		if after_grace_period {
