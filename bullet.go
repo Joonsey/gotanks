@@ -21,15 +21,23 @@ const (
 	BULLET_HEIGHT = 8
 )
 
-type Bullet struct {
+type Bullet interface {
+	Update(level *Level, g *Game) Bullet
+	GetDrawData(g *Game)
+	GetId() string
+	IsColliding(position, dimension Position) bool
+}
+
+type StandardBullet struct {
 	Position
 	ID          string
 	Rotation    float64
 	Bullet_type BulletTypeEnum
 
+	Num_bounces int
+	Velocity    float64
+
 	grace_period int
-	Num_bounces  int
-	Velocity     float64
 }
 
 type BulletHit struct {
@@ -40,7 +48,7 @@ type BulletHit struct {
 type BulletManager struct {
 	Observer
 	mutex   sync.RWMutex
-	bullets map[string]*Bullet
+	bullets map[string]Bullet
 
 	network_manager  *NetworkManager
 	asset_manager    *AssetManager
@@ -60,7 +68,9 @@ func (bm *BulletManager) NewBulletId() string {
 }
 
 func (bm *BulletManager) Shoot(bullet Bullet) {
-	bullet.ID = bm.NewBulletId()
+	//bullet.ID = bm.NewBulletId()
+	// TODO
+	// deprecate
 	if bm.network_manager == nil ||
 		bm.network_manager.client == nil ||
 		!bm.network_manager.client.isConnected() {
@@ -91,7 +101,7 @@ func InitBulletManager(nm *NetworkManager, am *AssetManager, pm *ParticleManager
 	bm.asset_manager = am
 	bm.particle_manager = pm
 
-	bm.bullets = make(map[string]*Bullet)
+	bm.bullets = make(map[string]Bullet)
 
 	return &bm
 }
@@ -108,21 +118,8 @@ func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) 
 }
 
 func (bm *BulletManager) AddBullet(bullet Bullet) {
-	bullet.grace_period = bm.DetermineGracePeriod(bullet.Bullet_type)
-
-	if bm.particle_manager != nil {
-		bm.particle_manager.AddParticle(
-			Particle{
-				particle_type: ParticleTypeGunSmoke,
-				Rotation:      bullet.Rotation,
-				Position:      bullet.Position,
-				velocity:      2,
-				offset:        Position{0, -TURRET_HEIGHT * 2},
-				max_t:         25,
-			})
-	}
 	bm.mutex.Lock()
-	bm.bullets[bullet.ID] = &bullet
+	bm.bullets[bullet.GetId()] = bullet
 	bm.mutex.Unlock()
 }
 
@@ -208,7 +205,33 @@ func DetermineBulletStats(bullet_type BulletTypeEnum) string {
 	}
 }
 
-func (b *Bullet) Update(level *Level, game *Game) *Bullet {
+func (b StandardBullet) GetId() string {
+	return b.ID
+}
+
+func (b StandardBullet) GetDrawData(g *Game) {
+	x, y := g.camera.GetRelativePosition(b.X, b.Y)
+	g.context.draw_data = append(g.context.draw_data,
+		DrawData{
+			path:      g.am.GetSpriteFromBulletTypeEnum(b.Bullet_type),
+			position:  Position{x, y},
+			rotation:  -b.Rotation - g.camera.rotation + math.Pi,
+			intensity: 1,
+			offset:    Position{0, -TURRET_HEIGHT * 2},
+			opacity:   1,
+		})
+	g.context.draw_data = append(g.context.draw_data,
+		DrawData{
+			path:      g.am.GetSpriteFromBulletTypeEnum(b.Bullet_type),
+			position:  Position{x, y - 4},
+			rotation:  -b.Rotation - g.camera.rotation + math.Pi,
+			intensity: 0,
+			offset:    Position{0, (-TURRET_HEIGHT * 2) + 8},
+			opacity:   .3,
+		})
+}
+
+func (b StandardBullet) Update(level *Level, game *Game) Bullet {
 	x, y := math.Sin(b.Rotation)*b.Velocity, math.Cos(b.Rotation)*b.Velocity
 
 	b.Position.Y += y
@@ -266,25 +289,7 @@ func (bm *BulletManager) GetDrawData(g *Game) {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
 	for _, bullet := range bm.bullets {
-		x, y := g.camera.GetRelativePosition(bullet.X, bullet.Y)
-		g.context.draw_data = append(g.context.draw_data,
-			DrawData{
-				path:      g.am.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
-				position:  Position{x, y},
-				rotation:  -bullet.Rotation - g.camera.rotation + math.Pi,
-				intensity: 1,
-				offset:    Position{0, -TURRET_HEIGHT * 2},
-				opacity:   1,
-			})
-		g.context.draw_data = append(g.context.draw_data,
-			DrawData{
-				path:      g.am.GetSpriteFromBulletTypeEnum(bullet.Bullet_type),
-				position:  Position{x, y - 4},
-				rotation:  -bullet.Rotation - g.camera.rotation + math.Pi,
-				intensity: 0,
-				offset:    Position{0, (-TURRET_HEIGHT * 2) + 8},
-				opacity:   .3,
-			})
+		bullet.GetDrawData(g)
 	}
 }
 
@@ -295,23 +300,34 @@ func (bm *BulletManager) Update(level *Level, g *Game) {
 		bullet := bullet.Update(level, g)
 		if bullet == nil {
 			delete(bm.bullets, key)
+		} else {
+			bm.bullets[key] = bullet
 		}
 	}
+}
+
+func (bullet StandardBullet) IsColliding(position, dimension Position) bool {
+	if bullet.grace_period > 0 {
+		return false
+	}
+
+	if bullet.X < position.X+dimension.X &&
+		bullet.X+BULLET_WIDTH > position.X &&
+		bullet.Y < position.Y+dimension.Y &&
+		bullet.Y+BULLET_HEIGHT > position.Y {
+		return true
+	}
+
+	return false
 }
 
 func (bm *BulletManager) IsColliding(position, dimension Position) *Bullet {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
 	for _, bullet := range bm.bullets {
-		if bullet.grace_period > 0 {
-			continue
-		}
-
-		if bullet.X < position.X+dimension.X &&
-			bullet.X+BULLET_WIDTH > position.X &&
-			bullet.Y < position.Y+dimension.Y &&
-			bullet.Y+BULLET_HEIGHT > position.Y {
-			return bullet
+		hit := bullet.IsColliding(position, dimension)
+		if hit {
+			return &bullet
 		}
 	}
 

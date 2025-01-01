@@ -308,11 +308,22 @@ func (pm *ParticleManager) Update(g *Game) {
 
 func (pm *ParticleManager) OnEvent(event Event) {
 	switch event.Name {
+	case EventBulletFired:
+		bullet := event.Data.(StandardBullet)
+		pm.AddParticle(
+			Particle{
+				particle_type: ParticleTypeGunSmoke,
+				Rotation:      bullet.Rotation,
+				Position:      bullet.Position,
+				velocity:      2,
+				offset:        Position{0, -TURRET_HEIGHT * 2},
+				max_t:         25,
+			})
 	case EventPlayerHit:
 		seed := time.Now().Unix()
 		particle_count := float64(seed%5) + 8
 		particle_sprite := "assets/sprites/stacks/particle-cube-template.png"
-		bullet := event.Data.(Bullet)
+		bullet := event.Data.(StandardBullet)
 
 		for i := range int(particle_count) {
 			// TODO seed this so it can be reasonably consistent across clients

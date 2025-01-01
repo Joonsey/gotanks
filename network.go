@@ -259,7 +259,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 	dec := gob.NewDecoder(bytes.NewReader(packet_data.Data))
 	switch packet_data.Packet.PacketType {
 	case shared.PacketTypeBulletShoot:
-		bullet := Bullet{}
+		bullet := StandardBullet{}
 		err := dec.Decode(&bullet)
 		if err != nil {
 			log.Panic("error decoding bullet", err)
@@ -282,7 +282,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 		}
 
 		bullet := game.bm.bullets[hit.Bullet_ID]
-		c.Notify(Event{EventPlayerHit, *bullet})
+		c.Notify(Event{EventPlayerHit, bullet})
 		delete(game.bm.bullets, hit.Bullet_ID)
 	case shared.PacketTypeNewRound:
 		event := NewRoundEvent{Spawns: map[string]Position{}}

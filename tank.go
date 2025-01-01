@@ -287,7 +287,7 @@ func (t *Tank) Update(g *Game) {
 		// not the base
 		bullet_pos.Y += TURRET_HEIGHT
 
-		bullet := Bullet{}
+		bullet := StandardBullet{}
 		bullet.Position = bullet_pos
 		bullet.Rotation = -rel_rotation + -g.camera.rotation + math.Pi
 		bullet.Bullet_type = bullet_type

@@ -132,7 +132,7 @@ func StartServer(name string, mediator_addr *net.UDPAddr) {
 		level_path := fmt.Sprintf("assets/tiled/level_%d.tmx", i+1)
 		server.levels = append(server.levels, loadLevel(level_path, nil, true))
 	}
-	server.bm.bullets = make(map[string]*Bullet)
+	server.bm.bullets = make(map[string]Bullet)
 
 	server.mediator_addr = mediator_addr
 
@@ -208,11 +208,16 @@ func (s *Server) HandlePacket(packet_data shared.PacketData) {
 	dec := gob.NewDecoder(bytes.NewReader(packet_data.Data))
 	switch packet_data.Packet.PacketType {
 	case shared.PacketTypeBulletShoot:
-		bullet := Bullet{}
+		bullet := StandardBullet{}
 		err := dec.Decode(&bullet)
 		if err != nil {
 			log.Panic("error decoding bullet", err)
 		}
+
+		// TODO
+		// bullet factory
+		bullet.grace_period = s.bm.DetermineGracePeriod(bullet.Bullet_type)
+		bullet.ID = s.bm.NewBulletId()
 
 		s.Broadcast(packet_data.Packet, bullet)
 		s.bm.AddBullet(bullet)
@@ -305,7 +310,7 @@ func (s *Server) UpdateServerLogic() {
 		bullet_hit := s.bm.IsColliding(value.tank.Position, Position{16, 16})
 		if bullet_hit != nil {
 			packet := shared.Packet{PacketType: shared.PacketTypePlayerHit}
-			data := BulletHit{Player: key, Bullet_ID: bullet_hit.ID}
+			data := BulletHit{Player: key, Bullet_ID: (*bullet_hit).GetId()}
 			s.connected_players.RUnlock()
 			s.Broadcast(packet, data)
 			s.connected_players.RLock()
@@ -314,10 +319,10 @@ func (s *Server) UpdateServerLogic() {
 			// 'owner:bullet_id' however, we don't have a solid way to id a user yet
 			// so this is currently not 100% working, but will when authorization is complete
 			// so TODO authorization...
-			delete(s.bm.bullets, bullet_hit.ID)
+			delete(s.bm.bullets, (*bullet_hit).GetId())
 			if len(s.sm.stats.Rounds) > 0 {
 				round_id := s.sm.stats.Rounds[len(s.sm.stats.Rounds)-1].Round_ID
-				shooter_id := strings.Split(bullet_hit.ID, ":")[0]
+				shooter_id := strings.Split((*bullet_hit).GetId(), ":")[0]
 				kill_event := NewKillEvent(round_id, key, shooter_id)
 				kill_event.Sync(s.sm)
 			}
