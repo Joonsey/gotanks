@@ -38,6 +38,7 @@ type BulletHit struct {
 }
 
 type BulletManager struct {
+	Observer
 	mutex   sync.RWMutex
 	bullets map[string]*Bullet
 
@@ -123,6 +124,13 @@ func (bm *BulletManager) AddBullet(bullet Bullet) {
 	bm.mutex.Lock()
 	bm.bullets[bullet.ID] = &bullet
 	bm.mutex.Unlock()
+}
+
+func (bm *BulletManager) OnEvent(event Event) {
+	switch event.Name {
+	case EventBulletFired:
+		bm.AddBullet(event.Data.(Bullet))
+	}
 }
 
 func (bm *BulletManager) DetermineGracePeriod(bullet_type BulletTypeEnum) int {

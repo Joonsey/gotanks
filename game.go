@@ -395,6 +395,8 @@ func GameInit(mediator_addr string) *Game {
 	game.pm = InitParticleManager(game.am)
 	game.bm = InitBulletManager(game.nm, game.am, game.pm)
 
+	game.nm.client.Register(game.bm)
+	game.nm.client.Register(game.pm)
 	game.nm.client.Auth = &game.sm.data.Player_ID
 
 	for i := range LEVEL_COUNT {

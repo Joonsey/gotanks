@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"math/rand"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -43,6 +44,7 @@ type Particle struct {
 }
 
 type ParticleManager struct {
+	GenericSubject
 	am *AssetManager
 
 	particles []*Particle
@@ -302,4 +304,50 @@ func (pm *ParticleManager) Update(g *Game) {
 	}
 
 	pm.particles = particles
+}
+
+func (pm *ParticleManager) OnEvent(event Event) {
+	switch event.Name {
+	case EventPlayerHit:
+		seed := time.Now().Unix()
+		particle_count := float64(seed%5) + 8
+		particle_sprite := "assets/sprites/stacks/particle-cube-template.png"
+		bullet := event.Data.(Bullet)
+
+		for i := range int(particle_count) {
+			// TODO seed this so it can be reasonably consistent across clients
+			n := rand.Float64() + 1
+			pm.AddParticle(
+				Particle{Position: bullet.Position,
+					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
+					sprite_path:   particle_sprite,
+					velocity:      n * .8,
+					particle_type: ParticleTypeDebrisFromTank,
+					max_t:         60 * n,
+				})
+		}
+		particle_count = float64(seed%3) + 4
+		for i := range int(particle_count) {
+			// TODO seed this so it can be reasonably consistent across clients
+			n := rand.Float64() + 1
+			pm.AddParticle(
+				Particle{Position: bullet.Position,
+					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
+					sprite_path:   particle_sprite,
+					velocity:      n * .1,
+					particle_type: ParticleTypeDebrisFromTank,
+					max_t:         30 * n,
+				})
+		}
+
+		// TODO maybe should be on center of hit tank, not where bullet hit
+		pm.AddParticle(
+			Particle{Position: bullet.Position,
+				sprite_path:   particle_sprite,
+				velocity:      .4,
+				particle_type: ParticleTypeDonut,
+				max_t:         45,
+			})
+
+	}
 }

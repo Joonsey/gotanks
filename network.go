@@ -7,7 +7,6 @@ import (
 	"gotanks/shared"
 	"image/color"
 	"log"
-	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -31,6 +30,8 @@ const (
 )
 
 type Client struct {
+	GenericSubject
+
 	conn   *net.UDPConn
 	target *net.UDPAddr
 
@@ -264,7 +265,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 			log.Panic("error decoding bullet", err)
 		}
 
-		game.bm.AddBullet(bullet)
+		c.Notify(Event{EventBulletFired, bullet})
 	case shared.PacketTypeUpdatePlayers:
 		err := dec.Decode(&game.context.player_updates)
 		if err != nil {
@@ -279,46 +280,9 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 		if c.isSelf(hit.Player) {
 			game.tank.Hit(hit)
 		}
-		particle_sprite := "assets/sprites/stacks/particle-cube-template.png"
+
 		bullet := game.bm.bullets[hit.Bullet_ID]
-
-		seed := time.Now().Unix()
-		particle_count := float64(seed%5) + 8
-		for i := range int(particle_count) {
-			// TODO seed this so it can be reasonably consistent across clients
-			n := rand.Float64() + 1
-			game.pm.AddParticle(
-				Particle{Position: bullet.Position,
-					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
-					sprite_path:   particle_sprite,
-					velocity:      n * .8,
-					particle_type: ParticleTypeDebrisFromTank,
-					max_t:         60 * n,
-				})
-		}
-		particle_count = float64(seed%3) + 4
-		for i := range int(particle_count) {
-			// TODO seed this so it can be reasonably consistent across clients
-			n := rand.Float64() + 1
-			game.pm.AddParticle(
-				Particle{Position: bullet.Position,
-					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
-					sprite_path:   particle_sprite,
-					velocity:      n * .1,
-					particle_type: ParticleTypeDebrisFromTank,
-					max_t:         30 * n,
-				})
-		}
-
-		// TODO maybe should be on center of hit tank, not where bullet hit
-		game.pm.AddParticle(
-			Particle{Position: bullet.Position,
-				sprite_path:   particle_sprite,
-				velocity:      .4,
-				particle_type: ParticleTypeDonut,
-				max_t:         45,
-			})
-
+		c.Notify(Event{EventPlayerHit, *bullet})
 		delete(game.bm.bullets, hit.Bullet_ID)
 	case shared.PacketTypeNewRound:
 		event := NewRoundEvent{Spawns: map[string]Position{}}
