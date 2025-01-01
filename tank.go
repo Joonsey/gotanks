@@ -104,7 +104,7 @@ func (t *Tank) GetDrawData(screen *ebiten.Image, g *Game, camera Camera, clr col
 		vector.StrokeCircle(RADI_SPRITE, float32(radius)/2, float32(radius)/2, float32(radius)/4, 2, clr, true)
 		rotationRad := t.Rotation
 
-		offset := -math.Pi+ camera.rotation
+		offset := -math.Pi + camera.rotation
 
 		// Top point calculation (rotation - 90 degrees)
 		topX := math.Cos(rotationRad-math.Pi/2-offset) * 16
