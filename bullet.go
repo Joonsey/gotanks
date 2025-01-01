@@ -8,12 +8,12 @@ import (
 	"sync"
 )
 
-type BulletTypeEnum uint8
+type StandardBulletTypeEnum uint8
 
 const (
-	BulletTypeStandard BulletTypeEnum = iota + 1
-	BulletTypeFast
-	BulletTypeEnd
+	StandardBulletTypeStandard StandardBulletTypeEnum = iota + 1
+	StandardBulletTypeFast
+	StandardBulletTypeEnd
 )
 
 const (
@@ -32,7 +32,7 @@ type StandardBullet struct {
 	Position
 	ID          string
 	Rotation    float64
-	Bullet_type BulletTypeEnum
+	Bullet_type StandardBulletTypeEnum
 
 	Num_bounces int
 	Velocity    float64
@@ -106,11 +106,11 @@ func InitBulletManager(nm *NetworkManager, am *AssetManager, pm *ParticleManager
 	return &bm
 }
 
-func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type BulletTypeEnum) string {
+func (am *AssetManager) GetSpriteFromBulletTypeEnum(bullet_type StandardBulletTypeEnum) string {
 	switch bullet_type {
-	case BulletTypeStandard:
+	case StandardBulletTypeStandard:
 		return "assets/sprites/stacks/bullet.png"
-	case BulletTypeFast:
+	case StandardBulletTypeFast:
 		return "assets/sprites/stacks/bullet-sniper.png"
 	default:
 		return "assets/sprites/stacks/bullet.png"
@@ -130,74 +130,74 @@ func (bm *BulletManager) OnEvent(event Event) {
 	}
 }
 
-func (bm *BulletManager) DetermineGracePeriod(bullet_type BulletTypeEnum) int {
+func (bm *BulletManager) DetermineGracePeriod(bullet_type StandardBulletTypeEnum) int {
 	switch bullet_type {
-	case BulletTypeFast:
+	case StandardBulletTypeFast:
 		return 15
 	default:
 		return 30
 	}
 }
 
-func DetermineNumBounces(bullet_type BulletTypeEnum) int {
+func DetermineNumBounces(bullet_type StandardBulletTypeEnum) int {
 	switch bullet_type {
-	case BulletTypeFast:
+	case StandardBulletTypeFast:
 		return 1
 	default:
 		return 2
 	}
 }
 
-func DetermineVelocity(bullet_type BulletTypeEnum) float64 {
+func DetermineVelocity(bullet_type StandardBulletTypeEnum) float64 {
 	switch bullet_type {
-	case BulletTypeFast:
+	case StandardBulletTypeFast:
 		return 3.3
 	default:
 		return 2.3
 	}
 }
 
-func DetermineBaseMagSize(bullet_type BulletTypeEnum) int {
+func DetermineBaseMagSize(bullet_type StandardBulletTypeEnum) int {
 	switch bullet_type {
-	case BulletTypeStandard:
+	case StandardBulletTypeStandard:
 		return 4
 	default:
 		return 2
 	}
 }
 
-func DetermineBaseReloadSpeed(bullet_type BulletTypeEnum) float64 {
+func DetermineBaseReloadSpeed(bullet_type StandardBulletTypeEnum) float64 {
 	switch bullet_type {
-	case BulletTypeFast:
+	case StandardBulletTypeFast:
 		return 3
 	default:
 		return 2
 	}
 }
 
-func DetermineBulletName(bullet_type BulletTypeEnum) string {
+func DetermineBulletName(bullet_type StandardBulletTypeEnum) string {
 	switch bullet_type {
-	case BulletTypeFast:
+	case StandardBulletTypeFast:
 		return "sniper"
-	case BulletTypeStandard:
+	case StandardBulletTypeStandard:
 		return "standard"
 	default:
 		return "missing!"
 	}
 }
 
-func DetermineBulletDesc(bullet_type BulletTypeEnum) string {
+func DetermineBulletDesc(bullet_type StandardBulletTypeEnum) string {
 	switch bullet_type {
-	case BulletTypeFast:
+	case StandardBulletTypeFast:
 		return "Fast travelling bullet,\n with longer reload time"
-	case BulletTypeStandard:
+	case StandardBulletTypeStandard:
 		return "Standard-issue bullet, Pew Pew!"
 	default:
 		return "missing!"
 	}
 }
 
-func DetermineBulletStats(bullet_type BulletTypeEnum) string {
+func DetermineBulletStats(bullet_type StandardBulletTypeEnum) string {
 	switch bullet_type {
 	default:
 		return fmt.Sprintf("\n - Magazine: %d\n - Reload speed: %.1fs\n - Bullet speed: %.1f",

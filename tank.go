@@ -225,7 +225,7 @@ func (t *Tank) Update(g *Game) {
 	g.CurrentLevel().gm.ApplyForce(t.X, t.Y)
 
 	loader_type := t.Get(LoaderMask)
-	bullet_type := BulletTypeEnum(t.Get(BulletMask))
+	bullet_type := StandardBulletTypeEnum(t.Get(BulletMask))
 	barrel_type := t.Get(BarrelMask)
 
 	base_reload_speed := DetermineBaseReloadSpeed(bullet_type)
@@ -330,7 +330,7 @@ func (t *Tank) Fire() bool {
 
 func (t *Tank) Reset() {
 	loaderType := t.Get(LoaderMask)
-	bulletType := BulletTypeEnum(t.Get(BulletMask))
+	bulletType := StandardBulletTypeEnum(t.Get(BulletMask))
 
 	t.MaxBulletsInMagazine = DetermineBaseMagSize(bulletType) * int(math.Floor(DetermineMaxMagMultiplier(loaderType)))
 	t.Life = 10

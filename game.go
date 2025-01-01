@@ -275,7 +275,7 @@ func (g *Game) DrawPlayerUI(screen *ebiten.Image, player PlayerUpdate, num_playe
 }
 
 func (g *Game) DrawAmmo(screen *ebiten.Image) {
-	bullet_sprites := g.am.GetSpriteFromBulletTypeEnum(BulletTypeEnum(g.tank.Get(BulletMask)))
+	bullet_sprites := g.am.GetSpriteFromBulletTypeEnum(StandardBulletTypeEnum(g.tank.Get(BulletMask)))
 
 	rel_x, rel_y := g.camera.GetRelativePosition(g.tank.X, g.tank.Y)
 

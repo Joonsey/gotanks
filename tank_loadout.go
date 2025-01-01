@@ -59,10 +59,10 @@ func (g *Game) UpdateTankLoadout() error {
 		}
 	case 2:
 		if inpututil.IsKeyJustPressed(incr_key) {
-			g.tank.Set(BulletMask, max((bullet_type+1)%uint8(BulletTypeEnd), 1))
+			g.tank.Set(BulletMask, max((bullet_type+1)%uint8(StandardBulletTypeEnd), 1))
 		} else if inpututil.IsKeyJustPressed(decr_key) {
 			if bullet_type <= 1 {
-				g.tank.Set(BulletMask, uint8(BulletTypeEnd)-1)
+				g.tank.Set(BulletMask, uint8(StandardBulletTypeEnd)-1)
 			} else {
 				g.tank.Set(BulletMask, bullet_type-1)
 			}
@@ -117,7 +117,7 @@ func (g *Game) DrawTankLoadoutInfoScreen(screen *ebiten.Image, mask uint32) {
 		msg = fmt.Sprintf("%s: %s\n\nDescription: %s\n\nStats: %s",
 			"Loader", DetermineLoaderName(t), DetermineLoaderDesc(t), DetermineLoaderStats(t))
 	case BulletMask:
-		bt := BulletTypeEnum(t)
+		bt := StandardBulletTypeEnum(t)
 		msg = fmt.Sprintf("%s: %s\n\nDescription: %s\n\nStats: %s",
 			"Bullet", DetermineBulletName(bt), DetermineBulletDesc(bt), DetermineBulletStats(bt))
 	case BarrelMask:
@@ -146,13 +146,13 @@ func (g *Game) DrawTankLoadout(screen *ebiten.Image) {
 			msg = fmt.Sprintf("loader: < %s >", DetermineLoaderName(g.tank.Get(mask)))
 		case 1:
 			mask = BulletMask
-			msg = fmt.Sprintf("bullet: < %s >", DetermineBulletName(BulletTypeEnum(g.tank.Get(mask))))
+			msg = fmt.Sprintf("bullet: < %s >", DetermineBulletName(StandardBulletTypeEnum(g.tank.Get(mask))))
 		case 2:
 			mask = BarrelMask
 			msg = fmt.Sprintf("barrel: < %s >", DetermineBarrelName(g.tank.Get(mask)))
 		case 3:
 			mask = TracksMask
-			msg = fmt.Sprintf("tracks: < %s >", DetermineBulletName(BulletTypeEnum(g.tank.Get(TracksMask))))
+			msg = fmt.Sprintf("tracks: < %s >", DetermineBulletName(StandardBulletTypeEnum(g.tank.Get(TracksMask))))
 		}
 
 		if i+1 == g.context.current_selection {
