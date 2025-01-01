@@ -21,6 +21,8 @@ const (
 	ParticleTypeDonut
 )
 
+const PARTICLE_SPRITE_PATH = "assets/sprites/stacks/particle-cube-template.png"
+
 type Particle struct {
 	Position
 	Rotation    float64
@@ -73,7 +75,7 @@ func (pm *ParticleManager) AddParticle(particle Particle) {
 	}
 
 	if particle.sprite_path == "" {
-		particle.sprite_path = "assets/sprites/stacks/particle-cube-template.png"
+		particle.sprite_path = PARTICLE_SPRITE_PATH
 	}
 
 	particle.seed = time.Now().UnixMilli()
@@ -322,7 +324,6 @@ func (pm *ParticleManager) OnEvent(event Event) {
 	case EventPlayerHit:
 		seed := time.Now().Unix()
 		particle_count := float64(seed%5) + 8
-		particle_sprite := "assets/sprites/stacks/particle-cube-template.png"
 		bullet := event.Data.(StandardBullet)
 
 		for i := range int(particle_count) {
@@ -331,7 +332,7 @@ func (pm *ParticleManager) OnEvent(event Event) {
 			pm.AddParticle(
 				Particle{Position: bullet.Position,
 					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
-					sprite_path:   particle_sprite,
+					sprite_path:   PARTICLE_SPRITE_PATH,
 					velocity:      n * .8,
 					particle_type: ParticleTypeDebrisFromTank,
 					max_t:         60 * n,
@@ -344,7 +345,7 @@ func (pm *ParticleManager) OnEvent(event Event) {
 			pm.AddParticle(
 				Particle{Position: bullet.Position,
 					Rotation:      bullet.Rotation + (float64(i)/particle_count)*1.5,
-					sprite_path:   particle_sprite,
+					sprite_path:   PARTICLE_SPRITE_PATH,
 					velocity:      n * .1,
 					particle_type: ParticleTypeDebrisFromTank,
 					max_t:         30 * n,
@@ -354,7 +355,7 @@ func (pm *ParticleManager) OnEvent(event Event) {
 		// TODO maybe should be on center of hit tank, not where bullet hit
 		pm.AddParticle(
 			Particle{Position: bullet.Position,
-				sprite_path:   particle_sprite,
+				sprite_path:   PARTICLE_SPRITE_PATH,
 				velocity:      .4,
 				particle_type: ParticleTypeDonut,
 				max_t:         45,

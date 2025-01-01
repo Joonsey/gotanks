@@ -127,6 +127,7 @@ func (bm *BulletManager) OnEvent(event Event) {
 	switch event.Name {
 	case EventBulletFired:
 		bm.AddBullet(event.Data.(Bullet))
+	case EventPlayerHit:
 	}
 }
 

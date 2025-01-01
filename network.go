@@ -265,7 +265,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 			log.Panic("error decoding bullet", err)
 		}
 
-		c.Notify(Event{EventBulletFired, bullet})
+		c.Notify(Event{Name: EventBulletFired, Data: bullet})
 	case shared.PacketTypeUpdatePlayers:
 		err := dec.Decode(&game.context.player_updates)
 		if err != nil {
@@ -282,7 +282,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 		}
 
 		bullet := game.bm.bullets[hit.Bullet_ID]
-		c.Notify(Event{EventPlayerHit, bullet})
+		c.Notify(Event{Name: EventPlayerHit, Data: bullet})
 		delete(game.bm.bullets, hit.Bullet_ID)
 	case shared.PacketTypeNewRound:
 		event := NewRoundEvent{Spawns: map[string]Position{}}
@@ -292,20 +292,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 		}
 
 		c.IncrementWin(event.Winner)
-
-		spawn, ok := event.Spawns[shared.AuthToString(*c.Auth)]
-		if !ok {
-			log.Panic("could not find spawn in spawn map ", event.Spawns)
-		}
-
-		game.context.new_level_time = event.Timestamp
-		go func() {
-			time.Sleep(event.Timestamp.Sub(time.Now()))
-			game.context.current_state = GameStatePlaying
-			game.context.current_level = int(event.Level)
-			game.tank.Respawn(spawn)
-			game.Reset()
-		}()
+		c.Notify(Event{Name: EventNewRound, Data: event})
 	case shared.PacketTypeNewMatch:
 		event := NewMatchEvent{}
 		err := dec.Decode(&event)
@@ -317,7 +304,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 			for k := range c.wins {
 				c.wins[k] = 0
 			}
-			game.Reset()
+			c.Notify(Event{Name: EventNewMatch})
 		}()
 	case shared.PacketTypeServerStateChanged:
 		err := dec.Decode(&c.server_state)
@@ -325,7 +312,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 			log.Panic("error decoding new server state")
 		}
 	case shared.PacketTypeBackToLobby:
-		game.context.current_state = GameStateLobby
+		c.Notify(Event{Name: EventBackToLobby})
 	case shared.PacketTypeGameOver:
 		event := NewRoundEvent{Spawns: map[string]Position{}}
 		err := dec.Decode(&event)
@@ -334,13 +321,7 @@ func (c *Client) HandlePacket(packet_data shared.PacketData, game *Game) {
 		}
 
 		c.IncrementWin(event.Winner)
-
-		game.context.game_over_time = event.Timestamp
-		go func() {
-			time.Sleep(event.Timestamp.Sub(time.Now()))
-			game.context.current_state = GameStateLobby
-			game.Reset()
-		}()
+		c.Notify(Event{Name: EventGameOver, Data: event})
 	case shared.PacketTypeAvailableHosts:
 		err := dec.Decode(&c.available_servers)
 		if err != nil {

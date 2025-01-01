@@ -6,6 +6,7 @@ import (
 	"gotanks/shared"
 	"image"
 	"image/color"
+	"log"
 	"math"
 	"time"
 
@@ -66,6 +67,7 @@ type GameContext struct {
 	player_updates []PlayerUpdate
 	levels         []Level
 
+	GenericSubject
 	// TODO refactor
 	new_level_time time.Time
 	game_over_time time.Time
@@ -91,6 +93,38 @@ type Game struct {
 	time   float64
 
 	context GameContext
+}
+
+func (g *Game) OnEvent(event Event) {
+	ctx := &g.context
+	switch event.Name {
+	case EventBackToLobby:
+		ctx.current_state = GameStateLobby
+	case EventGameOver:
+		server_event := event.Data.(NewRoundEvent)
+		ctx.game_over_time = server_event.Timestamp
+		go func() {
+			time.Sleep(server_event.Timestamp.Sub(time.Now()))
+			ctx.current_state = GameStateLobby
+			g.Reset()
+		}()
+	case EventNewMatch:
+		g.Reset()
+	case EventNewRound:
+		server_event := event.Data.(NewRoundEvent)
+		ctx.new_level_time = server_event.Timestamp
+		spawn, ok := server_event.Spawns[shared.AuthToString(*g.nm.client.Auth)]
+		if !ok {
+			log.Panic("could not find spawn in spawn map ", server_event.Spawns)
+		}
+		go func() {
+			time.Sleep(server_event.Timestamp.Sub(time.Now()))
+			g.context.current_state = GameStatePlaying
+			g.context.current_level = int(server_event.Level)
+			g.tank.Respawn(spawn)
+			g.Reset()
+		}()
+	}
 }
 
 const (
@@ -397,6 +431,7 @@ func GameInit(mediator_addr string) *Game {
 
 	game.nm.client.Register(game.bm)
 	game.nm.client.Register(game.pm)
+	game.nm.client.Register(&game)
 	game.nm.client.Auth = &game.sm.data.Player_ID
 
 	for i := range LEVEL_COUNT {

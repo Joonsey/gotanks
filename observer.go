@@ -11,6 +11,13 @@ const (
 	EventBulletFired EventType = "BulletFired"
 	EventExplosion   EventType = "Explosion"
 	EventPlayerHit   EventType = "PlayerHit"
+	// this is not really implemented
+	// should be used for 'forceful return to lobby'
+	// probably...
+	EventBackToLobby EventType = "BackToLobby"
+	EventGameOver    EventType = "GameOver"
+	EventNewMatch    EventType = "NewMatch"
+	EventNewRound    EventType = "NewRound"
 )
 
 type Observer interface {
